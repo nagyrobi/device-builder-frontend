@@ -20,7 +20,9 @@ import {
   importableDevicesContext,
   versionContext,
   darkModeContext,
+  localizeContext,
 } from "../context/index.js";
+import { defaultLocalize, loadLocalize, type LocalizeFunc } from "../common/localize.js";
 import { espHomeStyles } from "../styles/shared.js";
 
 // Import child components
@@ -55,6 +57,10 @@ export class ESPHomeApp extends LitElement {
   @provide({ context: darkModeContext })
   @state()
   private _darkMode = false;
+
+  @provide({ context: localizeContext })
+  @state()
+  private _localize: LocalizeFunc = defaultLocalize;
 
   // ─── Router ──────────────────────────────────────────────
 
@@ -151,6 +157,12 @@ export class ESPHomeApp extends LitElement {
 
   private async _init() {
     this._initDarkMode();
+    try {
+      this._localize = await loadLocalize();
+    } catch (err) {
+      console.error("Failed to load localization, falling back to default:", err);
+      this._localize = ((key: string, ..._args: unknown[]) => key) as LocalizeFunc;
+    }
     // Fetch version
     try {
       const { version } = await this._api.getVersion();
