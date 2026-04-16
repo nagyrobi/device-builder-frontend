@@ -390,7 +390,7 @@ export class ESPHomeWizardStepBoard extends LitElement {
                   variant=${tag === "starter-kit" ? "success" : "brand"}
                   pill
                   style="font-size: var(--wa-font-size-s);"
-                  >${this._localize(`wizard.tag.${tag}`)}</wa-badge
+                  >${this._localizeTag(tag)}</wa-badge
                 >`
             )}
           </div>
@@ -444,7 +444,7 @@ export class ESPHomeWizardStepBoard extends LitElement {
                 style="font-size: var(--wa-font-size-xs);"
                 variant=${tag === "starter-kit" ? "success" : "brand"}
                 pill
-                >${this._localize(`wizard.tag.${tag}`)}</wa-badge
+                >${this._localizeTag(tag)}</wa-badge
               >`
           )}
         </div>
@@ -470,6 +470,13 @@ export class ESPHomeWizardStepBoard extends LitElement {
 
   private _onToggleExpand(board: BoardCatalogEntry) {
     this._expandedBoardId = this._expandedBoardId === board.id ? null : board.id;
+  }
+
+  private _localizeTag(tag: string): string {
+    const key = `wizard.tag.${tag}`;
+    const translated = this._localize(key);
+    // If localize returns the key itself, show the raw tag instead
+    return translated === key ? tag : translated;
   }
 
   private _onAdd(board: BoardCatalogEntry) {
