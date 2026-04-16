@@ -1,5 +1,5 @@
 import { consume } from "@lit/context";
-import { mdiClose, mdiPlay, mdiStop, mdiDeleteSweep } from "@mdi/js";
+import { mdiClose, mdiDeleteSweep, mdiPlay, mdiStop } from "@mdi/js";
 import { LitElement, css, html } from "lit";
 import { customElement, property, query, state } from "lit/decorators.js";
 import type { ESPHomeAPI } from "../api/index.js";
@@ -18,34 +18,6 @@ registerMdiIcons({
   stop: mdiStop,
   "delete-sweep": mdiDeleteSweep,
 });
-
-/** Demo log lines shown when no real backend connection is available. */
-const DEMO_LOGS: string[] = [
-  "\x1b[36m[00:00:00][C][logger:185]\x1b[0m Log initialized",
-  "\x1b[36m[00:00:00][C][wifi:037]\x1b[0m Setting up WiFi...",
-  "\x1b[32m[00:00:01][I][wifi:274]\x1b[0m WiFi Connected! SSID: 'MyNetwork', IP: 192.168.1.42",
-  "\x1b[32m[00:00:01][I][app:029]\x1b[0m Running through setup()...",
-  "\x1b[36m[00:00:01][C][i2c:022]\x1b[0m Setting up I2C bus...",
-  "\x1b[36m[00:00:01][C][i2c:048]\x1b[0m   SDA Pin: GPIO21",
-  "\x1b[36m[00:00:01][C][i2c:049]\x1b[0m   SCL Pin: GPIO22",
-  "\x1b[36m[00:00:01][C][i2c:050]\x1b[0m   Frequency: 50000 Hz",
-  "\x1b[32m[00:00:02][I][bme280:159]\x1b[0m BME280 found at address 0x76",
-  "\x1b[32m[00:00:02][I][app:062]\x1b[0m setup() finished successfully!",
-  "",
-  "\x1b[35m[00:00:05][D][sensor:094]\x1b[0m 'BME280 Temperature': Sending state \x1b[1m22.45\x1b[0m \x1b[35m\u00b0C\x1b[0m",
-  "\x1b[35m[00:00:05][D][sensor:094]\x1b[0m 'BME280 Humidity': Sending state \x1b[1m58.20\x1b[0m \x1b[35m%\x1b[0m",
-  "\x1b[35m[00:00:05][D][sensor:094]\x1b[0m 'BME280 Pressure': Sending state \x1b[1m1013.25\x1b[0m \x1b[35mhPa\x1b[0m",
-  "\x1b[32m[00:00:05][I][api:102]\x1b[0m Client 'Home Assistant 2024.3.1' connected",
-  "",
-  "\x1b[35m[00:00:10][D][sensor:094]\x1b[0m 'BME280 Temperature': Sending state \x1b[1m22.51\x1b[0m \x1b[35m\u00b0C\x1b[0m",
-  "\x1b[35m[00:00:10][D][sensor:094]\x1b[0m 'BME280 Humidity': Sending state \x1b[1m57.90\x1b[0m \x1b[35m%\x1b[0m",
-  "\x1b[35m[00:00:10][D][sensor:094]\x1b[0m 'BME280 Pressure': Sending state \x1b[1m1013.30\x1b[0m \x1b[35mhPa\x1b[0m",
-  "\x1b[33m[00:00:12][W][component:204]\x1b[0m Component 'ota' took a long time for an operation (120ms).",
-  "",
-  "\x1b[35m[00:00:15][D][sensor:094]\x1b[0m 'BME280 Temperature': Sending state \x1b[1m22.48\x1b[0m \x1b[35m\u00b0C\x1b[0m",
-  "\x1b[35m[00:00:15][D][sensor:094]\x1b[0m 'BME280 Humidity': Sending state \x1b[1m58.10\x1b[0m \x1b[35m%\x1b[0m",
-  "\x1b[32m[00:00:15][I][wifi:274]\x1b[0m WiFi signal strength: -42 dBm",
-];
 
 @customElement("esphome-logs-dialog")
 export class ESPHomeLogsDialog extends LitElement {
@@ -70,13 +42,9 @@ export class ESPHomeLogsDialog extends LitElement {
   private _streaming = false;
 
   @state()
-  private _lines: string[] = [];
+  _lines: string[] = [];
 
-  @state()
   private _streamId = "";
-
-  private _demoTimer: ReturnType<typeof setInterval> | null = null;
-  private _demoIndex = 0;
 
   @query("wa-dialog")
   private _dialog!: HTMLElement & { open: boolean };
@@ -254,9 +222,8 @@ export class ESPHomeLogsDialog extends LitElement {
     this._lines = [];
     this._streaming = false;
     this._streamId = "";
-    this._demoIndex = 0;
     this._dialog.open = true;
-    this._startDemo();
+    this._startStreaming();
   }
 
   public close() {
@@ -300,7 +267,7 @@ export class ESPHomeLogsDialog extends LitElement {
                   </button>
                 `
               : html`
-                  <button class="term-btn term-btn--start" @click=${this._startDemo}>
+                  <button class="term-btn term-btn--start" @click=${this._startStreaming}>
                     <wa-icon library="mdi" name="play"></wa-icon>
                     ${this._localize("dashboard.logs_start")}
                   </button>
@@ -311,33 +278,29 @@ export class ESPHomeLogsDialog extends LitElement {
     `;
   }
 
-  /**
-   * Start streaming demo logs.
-   * In a real scenario this would call this._api.logs(configuration, "OTA", callbacks).
-   */
-  private _startDemo() {
+  private _startStreaming() {
     if (this._streaming) return;
     this._streaming = true;
-    this._demoIndex = 0;
     this._lines = [];
 
-    // Drip-feed demo lines to simulate real-time streaming
-    this._demoTimer = setInterval(() => {
-      if (this._demoIndex >= DEMO_LOGS.length) {
-        // Loop from the sensor readings portion
-        this._demoIndex = 11;
-      }
-      this._lines = [...this._lines, DEMO_LOGS[this._demoIndex]];
-      this._demoIndex++;
-    }, 350);
+    this._streamId = this._api.logs(this.configuration, "OTA", {
+      onOutput: (line: string) => {
+        this._lines = [...this._lines, line];
+      },
+      onResult: () => {
+        this._streaming = false;
+        this._streamId = "";
+      },
+      onError: () => {
+        this._streaming = false;
+        this._streamId = "";
+      },
+    });
   }
 
   private _stopStreaming() {
     this._streaming = false;
-    if (this._demoTimer) {
-      clearInterval(this._demoTimer);
-      this._demoTimer = null;
-    }
+    this._streamId = "";
   }
 
   private _clearLogs() {
