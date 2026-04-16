@@ -50,6 +50,8 @@ export class ESPHomeAPI {
   private _serverInfo: ServerInfoMessage | null = null;
   private _connected = false;
   private _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private _reconnectDelay = 1000;
+  private _intentionalDisconnect = false;
   private _connectPromise: {
     resolve: (info: ServerInfoMessage) => void;
     reject: (error: Error) => void;
@@ -80,6 +82,7 @@ export class ESPHomeAPI {
 
     return new Promise((resolve, reject) => {
       this._connectPromise = { resolve, reject };
+      this._intentionalDisconnect = false;
 
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsUrl = `${protocol}//${window.location.host}/ws`;
@@ -105,6 +108,7 @@ export class ESPHomeAPI {
 
   /** Disconnect and stop reconnecting. */
   disconnect(): void {
+    this._intentionalDisconnect = true;
     if (this._reconnectTimer) {
       clearTimeout(this._reconnectTimer);
       this._reconnectTimer = null;
@@ -128,6 +132,7 @@ export class ESPHomeAPI {
     if ("server_version" in data) {
       this._serverInfo = data as unknown as ServerInfoMessage;
       this._connected = true;
+      this._reconnectDelay = 1000;
       if (this._connectPromise) {
         this._connectPromise.resolve(this._serverInfo);
         this._connectPromise = null;
@@ -213,13 +218,19 @@ export class ESPHomeAPI {
 
     if (wasConnected) {
       this.onDisconnected?.();
-      // Auto-reconnect after delay
+    }
+
+    // Auto-reconnect unless intentionally disconnected
+    if (!this._intentionalDisconnect) {
+      const delay = this._reconnectDelay;
+      this._reconnectDelay = Math.min(this._reconnectDelay * 2, 30000);
+      console.debug(`[WS] Reconnecting in ${delay}ms...`);
       this._reconnectTimer = setTimeout(() => {
         this._reconnectTimer = null;
         this.connect().catch(() => {
-          // Will retry on next close
+          // _onClose will fire again and schedule next retry
         });
-      }, 5000);
+      }, delay);
     }
   }
 
