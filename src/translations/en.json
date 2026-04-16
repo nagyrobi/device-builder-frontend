@@ -186,6 +186,10 @@
     "download_failed": "Failed to download firmware.",
     "flash_failed": "Failed to flash firmware to device.",
     "chip_mismatch": "Chip mismatch: detected {detected} but device expects {expected}.",
+    "validate_title": "Validate — {name}",
+    "status_validating": "Validating configuration…",
+    "validate_success": "Configuration is valid!",
+    "validate_failed": "Validation failed.",
     "show_logs": "Show logs",
     "hide_logs": "Hide logs"
   },

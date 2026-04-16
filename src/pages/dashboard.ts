@@ -324,7 +324,7 @@ export class ESPHomePageDashboard extends LitElement {
         @edit-device=${(e: CustomEvent<ConfiguredDevice>) => editDevice(e.detail)}
         @update-device=${(e: CustomEvent<ConfiguredDevice>) => this._firmwareDialog.installOta(e.detail)}
         @open-logs=${(e: CustomEvent<ConfiguredDevice>) => this._openLogs(e.detail)}
-        @validate-device=${(e: CustomEvent<ConfiguredDevice>) => this._openCommand(e.detail, "validate")}
+        @validate-device=${(e: CustomEvent<ConfiguredDevice>) => this._firmwareDialog.validate(e.detail)}
         @install-device=${(e: CustomEvent<ConfiguredDevice>) => this._openInstallMethod(e.detail)}
         @show-api-key=${(e: CustomEvent<ConfiguredDevice>) => this._showApiKey(e.detail)}
         @download-yaml=${(e: CustomEvent<ConfiguredDevice>) => downloadYaml(e.detail, this._api, this._localize)}
@@ -377,7 +377,7 @@ export class ESPHomePageDashboard extends LitElement {
         @edit-device=${(e: CustomEvent<ConfiguredDevice>) => editDevice(e.detail)}
         @update-device=${(e: CustomEvent<ConfiguredDevice>) => this._firmwareDialog.installOta(e.detail)}
         @open-logs=${(e: CustomEvent<ConfiguredDevice>) => this._openLogs(e.detail)}
-        @validate-device=${(e: CustomEvent<ConfiguredDevice>) => this._openCommand(e.detail, "validate")}
+        @validate-device=${(e: CustomEvent<ConfiguredDevice>) => this._firmwareDialog.validate(e.detail)}
         @install-device=${(e: CustomEvent<ConfiguredDevice>) => this._openInstallMethod(e.detail)}
         @show-api-key=${(e: CustomEvent<ConfiguredDevice>) => this._showApiKey(e.detail)}
         @download-yaml=${(e: CustomEvent<ConfiguredDevice>) => downloadYaml(e.detail, this._api, this._localize)}

@@ -57,6 +57,7 @@ export class ESPHomeFirmwareInstallDialog extends LitElement {
 
   @state() private _open = false;
   @state() private _step: InstallStep = "installing";
+  @state() private _title = "";
   @state() private _statusMessage = "";
   @state() private _errorMessage = "";
   @state() private _logLines: string[] = [];
@@ -97,6 +98,31 @@ export class ESPHomeFirmwareInstallDialog extends LitElement {
     this._startWebSerialInstall();
   }
 
+  /** Validate a device configuration. */
+  validate(device: ConfiguredDevice) {
+    this._init(device);
+    this._title = this._localize("firmware.validate_title", { name: device.friendly_name || device.name });
+    this._step = "installing";
+    this._statusMessage = this._localize("firmware.status_validating");
+    this._dialog.open = true;
+    this._streamId = this._api.validate(device.configuration, {
+      onOutput: (line) => { this._logLines = [...this._logLines, line]; },
+      onResult: (data) => {
+        this._streamId = "";
+        if (data.success) {
+          this._step = "done";
+          this._statusMessage = this._localize("firmware.validate_success");
+        } else {
+          this._fail(this._localize("firmware.validate_failed"));
+        }
+      },
+      onError: (error) => {
+        this._streamId = "";
+        this._fail(error);
+      },
+    });
+  }
+
   /** Attach to an already-running job and show its progress. */
   followJob(device: ConfiguredDevice, job: FirmwareJob) {
     this._init(device);
@@ -130,6 +156,7 @@ export class ESPHomeFirmwareInstallDialog extends LitElement {
     this._device = device;
     this._open = true;
     this._step = "installing";
+    this._title = this._localize("firmware.install_title", { name: device.friendly_name || device.name });
     this._statusMessage = "";
     this._errorMessage = "";
     this._logLines = [];
@@ -304,10 +331,9 @@ export class ESPHomeFirmwareInstallDialog extends LitElement {
   // ─── Render ────────────────────────────────────────────
 
   protected render() {
-    const name = this._device?.friendly_name || this._device?.name || "";
     return html`
       <wa-dialog
-        label=${this._localize("firmware.install_title", { name })}
+        label=${this._title}
         ?open=${this._open}
         @wa-after-hide=${this._onClose}
       >
