@@ -49,9 +49,21 @@ export async function detectChip(onLog?: LogCallback): Promise<DetectedChip> {
       : undefined,
   });
 
-  const chipName = await loader.main();
-
-  return { chipName, port, transport, loader };
+  try {
+    const chipName = await loader.main();
+    return { chipName, port, transport, loader };
+  } catch (error) {
+    try {
+      await transport.disconnect();
+    } catch {
+      try {
+        await port.close();
+      } catch {
+        // Best-effort cleanup; rethrow the original detection error below.
+      }
+    }
+    throw error;
+  }
 }
 
 /**
@@ -62,7 +74,7 @@ export async function flashFirmware(
   loader: ESPLoader,
   data: Uint8Array,
   address: number,
-  onProgress?: (progress: FlashProgress) => void,
+  onProgress?: (progress: FlashProgress) => void
 ): Promise<void> {
   await loader.writeFlash({
     fileArray: [{ data, address }],
@@ -72,7 +84,12 @@ export async function flashFirmware(
     eraseAll: false,
     compress: true,
     reportProgress: (fileIndex, written, total) => {
-      onProgress?.({ fileIndex, written, total, percent: Math.round((written / total) * 100) });
+      onProgress?.({
+        fileIndex,
+        written,
+        total,
+        percent: Math.round((written / total) * 100),
+      });
     },
   });
 }
@@ -80,7 +97,7 @@ export async function flashFirmware(
 /** Hard-reset the device and disconnect. */
 export async function resetAndDisconnect(
   loader: ESPLoader,
-  transport: Transport,
+  transport: Transport
 ): Promise<void> {
   try {
     await loader.after("hard_reset");

@@ -26,7 +26,7 @@ export function createDeviceColumns(localize: LocalizeFunc): ColumnDef<DeviceRow
       header: localize("dashboard.table_col_status"),
       cell: (info) => {
         const state = info.getValue() as DeviceState;
-        const dotClass = state === DeviceState.ONLINE ? "online" : "offline";
+        const dotClass = state === DeviceState.ONLINE ? "online" : state === DeviceState.OFFLINE ? "offline" : "unknown";
         const title = state === DeviceState.ONLINE
           ? localize("dashboard.table_status_online")
           : state === DeviceState.OFFLINE

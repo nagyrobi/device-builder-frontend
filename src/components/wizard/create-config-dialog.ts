@@ -62,7 +62,7 @@ export class ESPHomeCreateConfigDialog extends LitElement {
       }
 
       wa-dialog.wide {
-        --width: 680px;
+        --width: 750px;
       }
 
       wa-dialog::part(header) {

@@ -8,10 +8,10 @@ import {
 } from "@mdi/js";
 import { LitElement, css, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import type { BoardCatalogEntry } from "../../api/types.js";
 import type { ESPHomeAPI } from "../../api/index.js";
+import type { BoardCatalogEntry } from "../../api/types.js";
 import type { LocalizeFunc } from "../../common/localize.js";
-import { localizeContext, apiContext } from "../../context/index.js";
+import { apiContext, localizeContext } from "../../context/index.js";
 import { espHomeStyles } from "../../styles/shared.js";
 import { debounce } from "../../util/debounce.js";
 import { registerMdiIcons } from "../../util/register-icons.js";
@@ -166,11 +166,12 @@ export class ESPHomeWizardStepBoard extends LitElement {
         color: var(--wa-color-text-subtle);
         text-transform: uppercase;
         letter-spacing: 0.06em;
+        padding: var(--wa-space-s) 0;
         margin: 0;
       }
 
       .boards-scroll {
-        height: 320px;
+        height: 500px;
         overflow-y: auto;
         padding-right: var(--wa-space-2xs);
       }
@@ -275,7 +276,8 @@ export class ESPHomeWizardStepBoard extends LitElement {
         align-items: center;
         justify-content: space-between;
         gap: var(--wa-space-s);
-        margin-top: 20px;
+        margin-top: auto;
+        padding-top: var(--wa-space-m);
       }
 
       .more-info {
@@ -334,7 +336,11 @@ export class ESPHomeWizardStepBoard extends LitElement {
         <button class="helper-link" type="button">
           ${this._localize("wizard.dont_know_board")}
         </button>
-        <button class="helper-link helper-link--bold" type="button" @click=${this._connectBoard}>
+        <button
+          class="helper-link helper-link--bold"
+          type="button"
+          @click=${this._connectBoard}
+        >
           ${this._localize("wizard.connect_your_board")}
         </button>
       </div>
@@ -345,29 +351,32 @@ export class ESPHomeWizardStepBoard extends LitElement {
           : this._boards.length === 0
             ? html`<p class="loading">${this._localize("wizard.no_boards_found")}</p>`
             : html`
-              ${featured
-                ? html`
-                    <p class="section-label">${this._localize("wizard.starter_kit")}</p>
-                    ${this._renderFeatured(featured)}
-                  `
-                : nothing}
-              ${regular.length
-                ? html`
-                    <p class="section-label">${this._localize("wizard.other_boards")}</p>
-                    <div class="boards-grid">
-                      ${regular.map((board) =>
-                        this._renderBoardCard(board, board.id === this._expandedBoardId)
-                      )}
-                    </div>
-                  `
-                : nothing}
-            `}
+                ${featured
+                  ? html`
+                      <p class="section-label">${this._localize("wizard.starter_kit")}</p>
+                      ${this._renderFeatured(featured)}
+                    `
+                  : nothing}
+                ${regular.length
+                  ? html`
+                      <p class="section-label">
+                        ${this._localize("wizard.other_boards")}
+                      </p>
+                      <div class="boards-grid">
+                        ${regular.map((board) =>
+                          this._renderBoardCard(board, board.id === this._expandedBoardId)
+                        )}
+                      </div>
+                    `
+                  : nothing}
+              `}
       </div>
     `;
   }
 
   private _renderFeatured(board: BoardCatalogEntry) {
-    const imageUrl = board.images.length > 0 ? board.images[0] : "/assets/board/apollo.svg";
+    const imageUrl =
+      board.images.length > 0 ? board.images[0] : "/assets/board/apollo.svg";
     return html`
       <div class="featured-card">
         <img class="featured-image" src=${imageUrl} alt=${board.name} />
@@ -401,7 +410,8 @@ export class ESPHomeWizardStepBoard extends LitElement {
   }
 
   private _renderBoardCard(board: BoardCatalogEntry, expanded: boolean) {
-    const imageUrl = board.images.length > 0 ? board.images[0] : "/assets/board/default.svg";
+    const imageUrl =
+      board.images.length > 0 ? board.images[0] : "/assets/board/default.svg";
     return html`
       <article class="board-card ${expanded ? "board-card--expanded" : ""}">
         <div class="board-card-header">
