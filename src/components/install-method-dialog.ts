@@ -231,7 +231,9 @@ export class ESPHomeInstallMethodDialog extends LitElement {
           <wa-icon library="mdi" name="usb"></wa-icon>
           <div class="info">
             <span class="title">${this._localize("dashboard.install_method_usb_local")}</span>
-            <span class="desc">${this._localize("dashboard.install_method_usb_local_desc")}</span>
+            <span class="desc">${hasWebSerial
+              ? this._localize("dashboard.install_method_usb_local_desc")
+              : this._localize("dashboard.install_method_usb_local_unsupported")}</span>
           </div>
         </div>
         <div class="option" @click=${this._onServerSerial}>

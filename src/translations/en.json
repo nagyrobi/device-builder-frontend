@@ -99,6 +99,7 @@
     "install_method_network_desc": "Requires the device to be online",
     "install_method_usb_local": "Plug into this computer",
     "install_method_usb_local_desc": "For devices connected via USB to this computer",
+    "install_method_usb_local_unsupported": "Requires a browser with Web Serial support (Chrome or Edge)",
     "install_method_usb_server": "Plug into computer running ESPHome Dashboard",
     "install_method_usb_server_desc": "For devices connected via USB to the server",
     "install": "Install",
