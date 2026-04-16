@@ -384,6 +384,8 @@ export class ESPHomeWizardStepBoard extends LitElement {
           <h3 class="featured-title">${board.name}</h3>
           <p class="featured-desc">${board.description}</p>
           <div class="tags">
+            <wa-badge variant="neutral" pill style="font-size: var(--wa-font-size-s);"
+              >${this._localizeTag(board.esphome.variant || board.esphome.platform)}</wa-badge>
             ${board.tags.map(
               (tag) =>
                 html`<wa-badge
@@ -438,6 +440,11 @@ export class ESPHomeWizardStepBoard extends LitElement {
         </p>
 
         <div class="tags">
+          <wa-badge
+            style="font-size: var(--wa-font-size-xs);"
+            variant="neutral"
+            pill
+          >${this._localizeTag(board.esphome.variant || board.esphome.platform)}</wa-badge>
           ${board.tags.map(
             (tag) =>
               html`<wa-badge
