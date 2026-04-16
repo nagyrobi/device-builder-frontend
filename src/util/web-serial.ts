@@ -67,6 +67,29 @@ export async function detectChip(onLog?: LogCallback): Promise<DetectedChip> {
 }
 
 /**
+ * Reconnect to an already-authorized serial port (no browser picker).
+ * Use after disconnect + compile to resume the connection for flashing.
+ */
+export async function connectToPort(port: SerialPort, onLog?: LogCallback): Promise<DetectedChip> {
+  const transport = new Transport(port, false);
+
+  const loader = new ESPLoader({
+    transport,
+    baudrate: 115200,
+    terminal: onLog
+      ? {
+          clean: () => {},
+          writeLine: (line: string) => onLog(line),
+          write: (text: string) => onLog(text),
+        }
+      : undefined,
+  });
+
+  const chipName = await loader.main();
+  return { chipName, port, transport, loader };
+}
+
+/**
  * Flash firmware binary data to a connected ESP device.
  * Assumes detectChip() was already called and the loader is connected.
  */

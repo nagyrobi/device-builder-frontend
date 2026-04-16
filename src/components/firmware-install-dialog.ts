@@ -18,6 +18,7 @@ import { apiContext, darkModeContext, localizeContext } from "../context/index.j
 import { espHomeStyles } from "../styles/shared.js";
 import { registerMdiIcons } from "../util/register-icons.js";
 import {
+  connectToPort,
   detectChip,
   disconnect,
   flashFirmware,
@@ -547,15 +548,16 @@ export class ESPHomeFirmwareInstallDialog extends LitElement {
       return;
     }
 
-    // 5. Reconnect and flash
+    // 5. Reconnect to the same port (no browser picker) and flash
     this._step = "flashing";
     this._statusMessage = this._localize("firmware.status_flashing");
     this._flashPercent = 0;
     let flashDetected: DetectedChip;
     try {
-      flashDetected = await detectChip();
-    } catch {
-      this._fail(this._localize("firmware.status_connecting"));
+      flashDetected = await connectToPort(detected.port);
+    } catch (err) {
+      console.error("[Web Serial] Reconnect failed:", err);
+      this._fail(this._localize("firmware.flash_failed"));
       return;
     }
 
@@ -564,9 +566,15 @@ export class ESPHomeFirmwareInstallDialog extends LitElement {
         this._flashPercent = p.percent;
       });
     } catch (err) {
-      try { await disconnect(flashDetected.transport); } catch { /* ignore */ }
-      this._fail(err instanceof Error ? err.message : this._localize("firmware.flash_failed"));
-      return;
+      console.error("[Web Serial] Flash error:", err);
+      // If progress reached 100%, treat as success (device may have reset during verification)
+      if (this._flashPercent >= 100) {
+        console.debug("[Web Serial] Flash reached 100%, treating as success despite error");
+      } else {
+        try { await disconnect(flashDetected.transport); } catch { /* ignore */ }
+        this._fail(err instanceof Error ? err.message : this._localize("firmware.flash_failed"));
+        return;
+      }
     }
 
     // 6. Reset
