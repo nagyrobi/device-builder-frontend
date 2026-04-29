@@ -56,7 +56,23 @@ export class ESPHomeAddComponentForm extends LitElement {
         defaults[entry.key] = [];
       }
     }
+    // Auto-generate a sensible default for the `id` field when present.
+    // Format: <domain>_<platform> (with dots in component.id replaced by
+    // underscores). For multi_conf components we append `_1` so the user
+    // gets a numbered slot they can bump.
+    const idEntry = this.component.config_entries.find(
+      (e) => e.key === "id" && e.type === ConfigEntryType.ID,
+    );
+    if (idEntry && !defaults[idEntry.key]) {
+      defaults[idEntry.key] = this._generateDefaultId();
+    }
     this._values = defaults;
+  }
+
+  private _generateDefaultId(): string {
+    // "switch.gpio" -> "switch_gpio"; "wifi" -> "wifi"
+    const slug = this.component.id.replace(/\./g, "_").toLowerCase();
+    return this.component.multi_conf ? `${slug}_1` : slug;
   }
 
   protected render() {
