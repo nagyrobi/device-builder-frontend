@@ -144,28 +144,43 @@ export class ESPHomeAddComponentForm extends LitElement {
     `,
   ];
 
-  connectedCallback(): void {
-    super.connectedCallback();
-    // Seed initial values from `default_value` on every required entry
-    // (recursively into NESTED groups). Non-required leaves are left
-    // out of `_values` so they don't end up serialised when empty.
-    this._values = this._seedDefaults(this.component.config_entries);
+  /** True once we've seeded `_values` for the current component. */
+  private _initialized = false;
 
-    // Auto-generate a sensible default for the top-level `id` field
-    // when present. Format: <domain>_<platform> (with dots in
-    // component.id replaced by underscores). Multi-conf components
-    // get a numbered suffix the user can bump.
+  willUpdate(changedProperties: Map<string, unknown>) {
+    super.willUpdate(changedProperties);
+    // Initialize the form values once we have both `component` and
+    // (if applicable) `prefillReference` set. We can't do this in
+    // `connectedCallback` because Lit applies property bindings as
+    // part of the update lifecycle, so on first paint they're not
+    // guaranteed to be set yet. Re-run when the component changes
+    // (the same form instance can be retargeted to a different
+    // component in the dep-flow detour).
+    if (changedProperties.has("component") || !this._initialized) {
+      if (this.component) {
+        this._initialized = true;
+        this._initValues();
+      }
+    }
+  }
+
+  /**
+   * Build the initial `_values` for the current component:
+   *  1. Seed required entries' default values (recursively).
+   *  2. Auto-generate a unique `id` for the top-level id field.
+   *  3. If we were just brought back from a "+ Add <domain>" detour,
+   *     prefill the field that points at that domain with the new id.
+   */
+  private _initValues() {
+    let next = this._seedDefaults(this.component.config_entries);
+
     const idEntry = this.component.config_entries.find(
       (e) => e.key === "id" && e.type === ConfigEntryType.ID,
     );
-    if (idEntry && this._values["id"] === undefined) {
-      this._values = { ...this._values, id: this._generateDefaultId() };
+    if (idEntry && next["id"] === undefined) {
+      next = { ...next, id: this._generateDefaultId() };
     }
 
-    // If we were just brought back from a "+ Add <domain>" detour,
-    // pre-fill the field that referenced that domain with the id of
-    // the component the user just created — saves them an extra
-    // dropdown click.
     if (this.prefillReference) {
       const targetPath = this._findReferencePath(
         this.component.config_entries,
@@ -173,13 +188,11 @@ export class ESPHomeAddComponentForm extends LitElement {
         [],
       );
       if (targetPath) {
-        this._values = setIn(
-          this._values,
-          targetPath,
-          this.prefillReference.id,
-        );
+        next = setIn(next, targetPath, this.prefillReference.id);
       }
     }
+
+    this._values = next;
   }
 
   /**
@@ -241,7 +254,33 @@ export class ESPHomeAddComponentForm extends LitElement {
   private _generateDefaultId(): string {
     // "switch.gpio" -> "switch_gpio"; "wifi" -> "wifi"
     const slug = this.component.id.replace(/\./g, "_").toLowerCase();
-    return this.component.multi_conf ? `${slug}_1` : slug;
+    const existing = this._collectExistingIds(this.yaml);
+    // Multi-conf components always get a numbered suffix (so the
+    // user can bump it). Single-conf components only get a suffix
+    // if the bare slug is already taken.
+    let candidate = this.component.multi_conf ? `${slug}_1` : slug;
+    let n = this.component.multi_conf ? 1 : 0;
+    while (existing.has(candidate)) {
+      n++;
+      candidate = `${slug}_${n}`;
+    }
+    return candidate;
+  }
+
+  /**
+   * Scan the YAML for every `id:` line and return the set of values.
+   * Best-effort regex match — same approach the ID-reference picker
+   * uses, deliberately simple (we only need a uniqueness check, not
+   * a full parse).
+   */
+  private _collectExistingIds(yaml: string): Set<string> {
+    const ids = new Set<string>();
+    if (!yaml) return ids;
+    for (const line of yaml.split("\n")) {
+      const m = line.match(/^\s+(?:-\s+)?id:\s*["']?(\S+?)["']?\s*$/);
+      if (m) ids.add(m[1]);
+    }
+    return ids;
   }
 
   protected render() {
