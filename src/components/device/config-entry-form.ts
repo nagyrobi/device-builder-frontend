@@ -496,6 +496,14 @@ export class ESPHomeConfigEntryForm extends LitElement {
     if (entry.multi_value) {
       return this._renderMultiValueField(entry, path);
     }
+    // Any entry that points at another component renders as the ID
+    // picker dropdown — `references_component` is the explicit
+    // "this references another component" signal, independent of the
+    // underlying type. (A binary light's `output:` field, for example,
+    // is a STRING with `references_component: "output"`.)
+    if (entry.references_component) {
+      return this._renderIdReferenceField(entry, path);
+    }
     if (entry.options && entry.options.length > 0) {
       return this._renderSelectField(entry, path);
     }
@@ -518,11 +526,6 @@ export class ESPHomeConfigEntryForm extends LitElement {
       case ConfigEntryType.LAMBDA:
       case ConfigEntryType.JSON:
         return this._renderTextareaField(entry, path);
-      case ConfigEntryType.ID:
-        if (entry.references_component) {
-          return this._renderIdReferenceField(entry, path);
-        }
-        return this._renderStringField(entry, "text", path);
       case ConfigEntryType.ICON:
         return this._renderIconField(entry, path);
       default:
@@ -839,13 +842,30 @@ export class ESPHomeConfigEntryForm extends LitElement {
   private _renderIdReferenceField(entry: ConfigEntry, path: string[]) {
     const domain = entry.references_component || "";
     const candidates = this._findReferencedComponents(this.yaml, domain);
-
-    if (candidates.length === 0) {
-      return this._renderStringField(entry, "text", path);
-    }
-
     const value = String(this._getAt(path) ?? "");
     const invalid = this._errorAt(path) !== null;
+
+    // No instances of `domain:` configured yet — render the dropdown
+    // disabled with a clear empty-state hint so the user understands
+    // why the field is empty (rather than a deceptive text input
+    // inviting freeform typing).
+    if (candidates.length === 0) {
+      return html`
+        <div class="field" data-field-key=${path.join(".")}>
+          ${this._renderLabel(entry)}
+          <wa-select class=${invalid ? "invalid" : ""} disabled>
+            <wa-option value="" selected>
+              ${this._localize("device.id_reference_empty", { domain })}
+            </wa-option>
+          </wa-select>
+          <p class="field-description">
+            ${this._localize("device.id_reference_empty_hint", { domain })}
+          </p>
+          ${this._fieldErrorAt(path)}
+        </div>
+      `;
+    }
+
     return html`
       <div class="field" data-field-key=${path.join(".")}>
         ${this._renderLabel(entry)}

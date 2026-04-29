@@ -159,6 +159,7 @@ export class ESPHomeAddComponentDialog extends LitElement {
         @add-component=${this._onComponentSelected}
         @form-cancel=${this._onBack}
         @form-submit=${this._onFormSubmit}
+        @navigate-to-dep=${this._onNavigateToDep}
       >
         <span slot="label" class="dialog-label">
           ${isForm
@@ -199,6 +200,24 @@ export class ESPHomeAddComponentDialog extends LitElement {
     if (this._submitting) return;
     this._selected = null;
     this._submitError = "";
+  }
+
+  /**
+   * Switch back to the catalog view filtered to the missing dependency
+   * domain. The user picks one of the matching components, adds it
+   * (which closes the dialog), then can re-open and pick the original
+   * component they were after.
+   */
+  private async _onNavigateToDep(e: CustomEvent<{ domain: string }>) {
+    e.stopPropagation();
+    if (this._submitting) return;
+    const { domain } = e.detail;
+    this._selected = null;
+    this._submitError = "";
+    // Wait for the catalog to be visible again before filtering, then
+    // load with the dep's domain as the search query.
+    await this.updateComplete;
+    this._catalog?.setSearch(domain);
   }
 
   private async _onFormSubmit(e: CustomEvent<{ fields: Record<string, unknown> }>) {

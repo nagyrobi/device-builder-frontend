@@ -78,6 +78,18 @@ export class ESPHomeComponentCatalog extends LitElement {
     this._fetchComponents();
   }
 
+  /**
+   * Programmatically set the search query (and optionally the
+   * category) and refetch. Used by the add-component dialog to deep
+   * link from a "missing dependency" banner to the catalog filtered
+   * to that dependency's domain.
+   */
+  public setSearch(query: string, category = "all") {
+    this._search = query;
+    this._category = category;
+    this._fetchComponents();
+  }
+
   private async _fetchComponents() {
     this._loading = true;
     try {

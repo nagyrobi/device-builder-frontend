@@ -93,13 +93,43 @@ export class ESPHomeAddComponentForm extends LitElement {
         color: var(--esphome-warning, #d97706);
       }
 
-      .deps-warning .deps-warning-title {
+      .deps-warning-body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--wa-space-2xs);
+        flex: 1;
+        min-width: 0;
+      }
+
+      .deps-warning-title {
         font-weight: var(--wa-font-weight-bold);
       }
 
-      .deps-warning ul {
-        margin: var(--wa-space-2xs) 0 0;
-        padding-left: var(--wa-space-l);
+      .deps-warning-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--wa-space-2xs);
+        margin-top: var(--wa-space-2xs);
+      }
+
+      .dep-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        background: var(--esphome-warning, #d97706);
+        color: var(--esphome-on-primary, white);
+        border: none;
+        border-radius: var(--wa-border-radius-m);
+        font-family: inherit;
+        font-size: var(--wa-font-size-xs);
+        font-weight: var(--wa-font-weight-bold);
+        cursor: pointer;
+        transition: opacity 0.12s;
+      }
+
+      .dep-button:hover {
+        opacity: 0.9;
       }
     `,
   ];
@@ -238,28 +268,51 @@ export class ESPHomeAddComponentForm extends LitElement {
   /**
    * Banner shown when one or more entries from `component.dependencies`
    * aren't yet configured at the top level. The submit button is
-   * disabled while this is showing — the user has to back out, add the
-   * missing component(s), then come back.
+   * disabled while this is showing. Each missing dep is rendered as a
+   * button that takes the user back to the catalog filtered to that
+   * domain — they pick one, add it, then come back to this component.
    */
   private _renderMissingDeps(missing: string[]) {
     return html`
       <div class="deps-warning" role="alert">
         <wa-icon library="mdi" name="alert-circle-outline"></wa-icon>
-        <div>
+        <div class="deps-warning-body">
           <div class="deps-warning-title">
             ${this._localize("device.missing_dependencies_title", {
               name: this.component.name,
             })}
           </div>
-          <div>
-            ${this._localize("device.missing_dependencies_body")}
+          <div>${this._localize("device.missing_dependencies_body")}</div>
+          <div class="deps-warning-actions">
+            ${missing.map(
+              (d) => html`<button
+                type="button"
+                class="dep-button"
+                @click=${() => this._onAddDep(d)}
+              >
+                ${this._localize("device.missing_dependencies_add", {
+                  domain: d,
+                })}
+              </button>`,
+            )}
           </div>
-          <ul>
-            ${missing.map((d) => html`<li><code>${d}</code></li>`)}
-          </ul>
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Emit an event the parent dialog uses to switch back to the
+   * catalog view, filtered to the requested dependency domain.
+   */
+  private _onAddDep(domain: string) {
+    this.dispatchEvent(
+      new CustomEvent("navigate-to-dep", {
+        detail: { domain },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   /** True if any error in the map has the `validation.required` code. */
