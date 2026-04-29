@@ -1,6 +1,26 @@
 import type { ConfigEntry } from "../api/types.js";
 import { ConfigEntryType } from "../api/types.js";
 
+/**
+ * Determine if a config entry is currently visible based on its `hidden`
+ * flag and any `depends_on` predicate against the current form values.
+ */
+export function isEntryVisible(
+  entry: ConfigEntry,
+  values: Record<string, unknown>,
+): boolean {
+  if (entry.hidden) return false;
+  if (!entry.depends_on) return true;
+  const depValue = values[entry.depends_on];
+  if (entry.depends_on_value !== null && entry.depends_on_value !== undefined) {
+    return depValue === entry.depends_on_value;
+  }
+  if (entry.depends_on_value_not !== null && entry.depends_on_value_not !== undefined) {
+    return depValue !== entry.depends_on_value_not;
+  }
+  return true;
+}
+
 export interface ValidationError {
   key: string;
   code: string;
@@ -73,6 +93,9 @@ export function validateEntries(
 ): Map<string, ValidationError> {
   const errors = new Map<string, ValidationError>();
   for (const entry of entries) {
+    // Skip hidden entries and those whose depends_on predicate fails —
+    // we don't want to require fields the user can't even see.
+    if (!isEntryVisible(entry, values)) continue;
     const raw = values[entry.key] ?? entry.default_value;
     const err = validateEntry(entry, raw);
     if (err) errors.set(entry.key, err);

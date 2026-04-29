@@ -1,5 +1,5 @@
 import { consume } from "@lit/context";
-import { mdiContentSave, mdiHelpCircleOutline, mdiOpenInNew } from "@mdi/js";
+import { mdiChevronDown, mdiChevronUp, mdiContentSave, mdiHelpCircleOutline, mdiOpenInNew } from "@mdi/js";
 import { css, html, LitElement, nothing } from "lit";
 import toast from "sonner-js";
 import { customElement, property, state } from "lit/decorators.js";
@@ -22,17 +22,20 @@ import type { LocalizeFunc } from "../../common/localize.js";
 import { apiContext, localizeContext } from "../../context/index.js";
 import { espHomeStyles } from "../../styles/shared.js";
 import { registerMdiIcons } from "../../util/register-icons.js";
-import { validateEntries, type ValidationError } from "../../util/config-validation.js";
+import { isEntryVisible, validateEntries, type ValidationError } from "../../util/config-validation.js";
 
 import "@home-assistant/webawesome/dist/components/divider/divider.js";
 import "@home-assistant/webawesome/dist/components/icon/icon.js";
 import "@home-assistant/webawesome/dist/components/input/input.js";
 import "@home-assistant/webawesome/dist/components/option/option.js";
+import "@home-assistant/webawesome/dist/components/popover/popover.js";
 import "@home-assistant/webawesome/dist/components/select/select.js";
 import "@home-assistant/webawesome/dist/components/spinner/spinner.js";
 import "@home-assistant/webawesome/dist/components/switch/switch.js";
 
 registerMdiIcons({
+  "chevron-down": mdiChevronDown,
+  "chevron-up": mdiChevronUp,
   "content-save": mdiContentSave,
   "help-circle-outline": mdiHelpCircleOutline,
   "open-in-new": mdiOpenInNew,
@@ -78,6 +81,9 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
 
   @state()
   private _fieldErrors: Map<string, ValidationError> = new Map();
+
+  @state()
+  private _advancedOpen = false;
 
   static styles = [
     espHomeStyles,
@@ -205,6 +211,86 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
         font-size: var(--wa-font-size-2xs);
         color: var(--wa-color-text-quiet);
         margin: 0;
+      }
+
+      .help-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        color: var(--wa-color-text-quiet);
+        font-size: 16px;
+        transition: color 0.12s;
+      }
+
+      .help-button:hover {
+        color: var(--esphome-primary);
+      }
+
+      .help-popover {
+        max-width: 320px;
+        font-size: var(--wa-font-size-xs);
+        color: var(--wa-color-text-normal);
+        line-height: 1.5;
+      }
+
+      .help-popover p {
+        margin: 0 0 var(--wa-space-s);
+      }
+
+      .help-popover p:last-child {
+        margin-bottom: 0;
+      }
+
+      .help-popover a {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--wa-space-2xs);
+        color: var(--esphome-primary);
+        text-decoration: none;
+        font-weight: var(--wa-font-weight-bold);
+      }
+
+      .help-popover a:hover {
+        text-decoration: underline;
+      }
+
+      .advanced-section {
+        margin-top: var(--wa-space-l);
+        border-top: 1px solid var(--wa-color-surface-lowered);
+        padding-top: var(--wa-space-m);
+      }
+
+      .advanced-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--wa-space-2xs);
+        background: none;
+        border: none;
+        padding: 0;
+        font-family: inherit;
+        font-size: var(--wa-font-size-s);
+        font-weight: var(--wa-font-weight-bold);
+        color: var(--wa-color-text-quiet);
+        cursor: pointer;
+      }
+
+      .advanced-toggle:hover {
+        color: var(--wa-color-text-normal);
+      }
+
+      .advanced-toggle wa-icon {
+        font-size: 18px;
+      }
+
+      .advanced-fields {
+        display: flex;
+        flex-direction: column;
+        gap: var(--wa-space-m);
+        margin-top: var(--wa-space-m);
       }
 
       .alert-entry {
@@ -459,7 +545,14 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
 
     if (!this._config) return nothing;
 
-    const visibleEntries = this._config.entries.filter((e) => !e.hidden);
+    // Filter entries by visibility (hidden + depends_on), then split into
+    // standard and advanced. Advanced entries get rendered in a separate
+    // collapsible section at the bottom.
+    const visibleEntries = this._config.entries.filter((e) =>
+      isEntryVisible(e, this._values),
+    );
+    const standardEntries = visibleEntries.filter((e) => !e.advanced);
+    const advancedEntries = visibleEntries.filter((e) => e.advanced);
 
     return html`
       <div class="section-header">
@@ -489,7 +582,8 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
           />
         </div>
       </div>
-      <div class="form">${visibleEntries.map((entry) => this._renderEntry(entry))}</div>
+      <div class="form">${standardEntries.map((entry) => this._renderEntry(entry))}</div>
+      ${advancedEntries.length > 0 ? this._renderAdvancedSection(advancedEntries) : nothing}
       ${this._error ? html`<p class="error">${this._error}</p>` : nothing}
       <div class="actions">
         <button
@@ -500,6 +594,25 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
           <wa-icon library="mdi" name="content-save"></wa-icon>
           ${this._saving ? this._localize("device.saving") : this._localize("device.save")}
         </button>
+      </div>
+    `;
+  }
+
+  private _renderAdvancedSection(entries: ConfigEntry[]) {
+    return html`
+      <div class="advanced-section">
+        <button
+          class="advanced-toggle"
+          @click=${() => { this._advancedOpen = !this._advancedOpen; }}
+        >
+          <wa-icon library="mdi" name=${this._advancedOpen ? "chevron-up" : "chevron-down"}></wa-icon>
+          ${this._localize("device.advanced_options")}
+        </button>
+        ${this._advancedOpen
+          ? html`<div class="advanced-fields">
+              ${entries.map((entry) => this._renderEntry(entry))}
+            </div>`
+          : nothing}
       </div>
     `;
   }
@@ -544,13 +657,7 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
     const invalid = this._errorFor(entry.key) !== null;
     return html`
       <div class="field">
-        <label class="field-label">
-          ${entry.label}
-          ${entry.required ? html`<span class="required">*</span>` : nothing}
-        </label>
-        ${entry.description
-          ? html`<p class="field-description">${entry.description}</p>`
-          : nothing}
+        ${this._renderLabel(entry)}
         <wa-input
           type=${inputType}
           class=${invalid ? "invalid" : ""}
@@ -572,13 +679,7 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
     const max = entry.range ? String(entry.range[1]) : undefined;
     return html`
       <div class="field">
-        <label class="field-label">
-          ${entry.label}
-          ${entry.required ? html`<span class="required">*</span>` : nothing}
-        </label>
-        ${entry.description
-          ? html`<p class="field-description">${entry.description}</p>`
-          : nothing}
+        ${this._renderLabel(entry)}
         <wa-input
           type="number"
           class=${invalid ? "invalid" : ""}
@@ -603,10 +704,7 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
     return html`
       <div class="switch-field">
         <div class="field-info">
-          <label class="field-label">${entry.label}</label>
-          ${entry.description
-            ? html`<p class="field-description">${entry.description}</p>`
-            : nothing}
+          ${this._renderLabel(entry)}
         </div>
         <wa-switch
           ?checked=${checked}
@@ -626,13 +724,7 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
     const invalid = this._errorFor(entry.key) !== null;
     return html`
       <div class="field">
-        <label class="field-label">
-          ${entry.label}
-          ${entry.required ? html`<span class="required">*</span>` : nothing}
-        </label>
-        ${entry.description
-          ? html`<p class="field-description">${entry.description}</p>`
-          : nothing}
+        ${this._renderLabel(entry)}
         <wa-select
           class=${invalid ? "invalid" : ""}
           value=${value}
@@ -646,6 +738,61 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
         </wa-select>
         ${this._fieldError(entry.key)}
       </div>
+    `;
+  }
+
+  /**
+   * Render the label for a config entry, including the required indicator
+   * and a help icon (when there's a description and/or help_link).
+   *
+   * Behavior of the help icon:
+   *  - description only → opens a popover with the description text
+   *  - help_link only   → behaves as a link to the docs URL
+   *  - both             → popover with description and a "Learn more" link
+   */
+  private _renderLabel(entry: ConfigEntry) {
+    const hasHelp = !!(entry.description || entry.help_link);
+    return html`
+      <label class="field-label">
+        ${entry.label}
+        ${entry.required ? html`<span class="required">*</span>` : nothing}
+        ${hasHelp ? this._renderHelp(entry) : nothing}
+      </label>
+    `;
+  }
+
+  private _renderHelp(entry: ConfigEntry) {
+    const helpId = `help-${entry.key}`;
+    // No description but has a link → render as a plain link button.
+    if (!entry.description && entry.help_link) {
+      return html`<a
+        class="help-button"
+        href=${entry.help_link}
+        target="_blank"
+        rel="noreferrer"
+        title=${this._localize("device.docs")}
+      >
+        <wa-icon library="mdi" name="help-circle-outline"></wa-icon>
+      </a>`;
+    }
+    // Description (with or without link) → popover.
+    return html`
+      <button class="help-button" id=${helpId} type="button">
+        <wa-icon library="mdi" name="help-circle-outline"></wa-icon>
+      </button>
+      <wa-popover for=${helpId} placement="top">
+        <div class="help-popover">
+          ${entry.description ? html`<p>${entry.description}</p>` : nothing}
+          ${entry.help_link
+            ? html`<p>
+                <a href=${entry.help_link} target="_blank" rel="noreferrer">
+                  ${this._localize("device.docs")}
+                  <wa-icon library="mdi" name="open-in-new"></wa-icon>
+                </a>
+              </p>`
+            : nothing}
+        </div>
+      </wa-popover>
     `;
   }
 

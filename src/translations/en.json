@@ -346,6 +346,7 @@
     "no_components_found": "No components found",
     "add_component_action": "Add",
     "docs": "Docs",
+    "advanced_options": "Advanced options",
     "save": "Save",
     "save_yaml": "Save YAML",
     "loading_config_catalog": "Loading configuration catalog…",
