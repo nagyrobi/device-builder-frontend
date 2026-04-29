@@ -484,6 +484,7 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
           <img
             src=${this._config.image_url || "/assets/board/default.svg"}
             alt=${this._config.title}
+            referrerpolicy="no-referrer"
             @error=${this._onImageError}
           />
         </div>
