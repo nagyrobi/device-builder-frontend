@@ -75,19 +75,18 @@ export interface ConfiguredDevice {
   name: string;
   friendly_name: string;
   configuration: string;
-  path: string;
   comment: string | null;
+  board_id: string;
+  target_platform: string;
   address: string;
   web_port: number | null;
-  target_platform: string;
   current_version: string;
   deployed_version: string;
   loaded_integrations: string[];
-  board_id: string;
   state: DeviceState;
-  /** null = never compiled, true = YAML newer than binary, false = up to date */
-  has_pending_changes: boolean | null;
-  /** true if server ESPHome version != device's compiled version */
+  /** True until successfully compiled + deployed */
+  has_pending_changes: boolean;
+  /** True if compiled with older ESPHome version */
   update_available: boolean;
 }
 
@@ -173,9 +172,46 @@ export interface PagedBoardsResponse extends PagedResponse {
 
 // ─── Components ──────────────────────────────────────────────
 
-export interface ComponentSubEntity {
+/** Component categories (matches backend ComponentCategory enum). */
+export enum ComponentCategory {
+  SENSOR = "sensor",
+  BINARY_SENSOR = "binary_sensor",
+  SWITCH = "switch",
+  LIGHT = "light",
+  FAN = "fan",
+  COVER = "cover",
+  CLIMATE = "climate",
+  BUTTON = "button",
+  NUMBER = "number",
+  SELECT = "select",
+  TEXT = "text",
+  TEXT_SENSOR = "text_sensor",
+  LOCK = "lock",
+  VALVE = "valve",
+  MEDIA_PLAYER = "media_player",
+  SPEAKER = "speaker",
+  MICROPHONE = "microphone",
+  CAMERA = "camera",
+  DISPLAY = "display",
+  TOUCHSCREEN = "touchscreen",
+  OUTPUT = "output",
+  DATETIME = "datetime",
+  EVENT = "event",
+  UPDATE = "update",
+  ALARM = "alarm_control_panel",
+  CORE = "core",
+  BUS = "bus",
+  AUTOMATION = "automation",
+  MISC = "misc",
+}
+
+/** A nested sub-configuration inside a parent component. */
+export interface ComponentSubEntry {
+  /** YAML key under the parent component (e.g. "temperature", "humidity"). */
   key: string;
+  /** ESPHome platform type the sub-entry represents (e.g. "sensor"). */
   platform_type: string;
+  /** Sub-entry-specific config fields beyond the platform defaults. */
   config_entries: ConfigEntry[];
 }
 
@@ -183,14 +219,19 @@ export interface ComponentCatalogEntry {
   id: string;
   name: string;
   description: string;
-  category: string;
+  category: ComponentCategory;
   docs_url: string;
   image_url: string;
+  /** Other components this one requires to be configured. */
   dependencies: string[];
-  auto_load: string[];
+  /** Whether the same component can be added multiple times. */
   multi_conf: boolean;
+  /** Empty list = works on every target platform. Non-empty = restricted to those. */
+  supported_platforms: string[];
+  /** The component's own configuration fields. */
   config_entries: ConfigEntry[];
-  sub_entities: ComponentSubEntity[];
+  /** Nested configurations the component exposes. */
+  sub_entries: ComponentSubEntry[];
 }
 
 export interface PagedComponentsResponse extends PagedResponse {
@@ -200,45 +241,137 @@ export interface PagedComponentsResponse extends PagedResponse {
 
 // ─── Config Entries ──────────────────────────────────────────
 
+/** Primitive value type for config entries. */
+export type ConfigPrimitive = string | number | boolean;
+
 export interface ConfigValueOption {
   label: string;
   value: string;
 }
 
+/** Known GPIO pin features/capabilities (matches backend PinFeature enum). */
+export enum PinFeature {
+  ADC = "adc",
+  DAC = "dac",
+  TOUCH = "touch",
+  PWM = "pwm",
+  I2C_SDA = "i2c_sda",
+  I2C_SCL = "i2c_scl",
+  SPI_MOSI = "spi_mosi",
+  SPI_MISO = "spi_miso",
+  SPI_CLK = "spi_clk",
+  SPI_CS = "spi_cs",
+  UART_TX = "uart_tx",
+  UART_RX = "uart_rx",
+  USB_DP = "usb_dp",
+  USB_DM = "usb_dm",
+  RGB_LED = "rgb_led",
+  JTAG = "jtag",
+  STRAPPING = "strapping",
+  INPUT_ONLY = "input_only",
+  BOOT_BUTTON = "boot_button",
+}
+
+/** Direction a GPIO pin will be used in (matches backend PinMode enum). */
+export enum PinMode {
+  INPUT = "input",
+  OUTPUT = "output",
+  INPUT_OUTPUT = "input_output",
+}
+
 export interface ConfigEntry {
+  // === core ===
+  /** YAML key name. */
   key: string;
+  /** Primitive type drives the UI control. */
   type: ConfigEntryType;
+  /** Short human-readable label shown next to the input. */
   label: string;
-  default_value: number | string | boolean | null;
-  required: boolean;
+  /** Longer help text shown as a tooltip or below the input. */
   description: string | null;
+  /** When True the YAML is invalid without this field set. */
+  required: boolean;
+  /** Default value. For multi_value entries this is the default list. */
+  default_value: ConfigPrimitive | ConfigPrimitive[] | null;
+
+  // === value constraints ===
+  /** Constrains the value to a fixed set of choices. */
   options: ConfigValueOption[] | null;
+  /** Min/max bounds for INTEGER / FLOAT entries. */
   range: [number, number] | null;
-  help_link: string | null;
+  /** When True the field accepts a list of values. */
   multi_value: boolean;
-  hidden: boolean;
+  /** When True accepts either a literal value OR a !lambda block. */
+  templatable: boolean;
+
+  // === conditional visibility ===
+  /** Key of another entry this one depends on. */
+  depends_on: string | null;
+  /** Show only when dependency value equals this. */
+  depends_on_value: ConfigPrimitive | null;
+  /** Show only when dependency value does NOT equal this. */
+  depends_on_value_not: ConfigPrimitive | null;
+
+  // === pin selection (only meaningful when type == PIN) ===
+  /** Pin capabilities required for this field. */
+  pin_features: PinFeature[];
+  /** Direction the pin will be used in. */
+  pin_mode: PinMode | null;
+
+  // === UI / i18n ===
+  /** When True frontend collapses this entry under an "Advanced" section. */
   advanced: boolean;
+  /** When True frontend hides the entry entirely. */
+  hidden: boolean;
+  /** Optional URL pointing to documentation specific to this field. */
+  help_link: string | null;
+  /** i18n override key. */
   translation_key: string | null;
-  translation_params: string[] | null;
-  value: number | string | boolean | string[] | null;
+  /** Substitution params for the translation string. */
+  translation_params: Record<string, unknown> | null;
+
+  // === runtime ===
+  /** Current value when this entry describes an existing config. */
+  value: ConfigPrimitive | ConfigPrimitive[] | null;
 }
 
 export enum ConfigEntryType {
+  // Single-line text input
   STRING = "string",
+  // Single-line text input that masks the value (passwords, API keys)
   SECURE_STRING = "secure_string",
+  // Whole-number spinner / numeric input
   INTEGER = "integer",
+  // Decimal-number spinner / numeric input
   FLOAT = "float",
+  // Toggle / checkbox
   BOOLEAN = "boolean",
-  SELECT = "select",
+  // GPIO pin picker
   PIN = "pin",
+  // Duration like "30s", "5min"
   TIME_PERIOD = "time_period",
+  // Material Design icon picker (mdi:foo)
   ICON = "icon",
+  // Component ID reference
   ID = "id",
+  // Automation trigger reference
   TRIGGER = "trigger",
+  // Color picker — accepts hex (#RRGGBB) or named color
+  COLOR = "color",
+  // MAC address input
+  MAC_ADDRESS = "mac_address",
+  // Multi-line code editor for raw `!lambda |- C++` blocks
+  LAMBDA = "lambda",
+  // Multi-line JSON editor
+  JSON = "json",
+  // Layout / decoration entries (no value)
   LABEL = "label",
   DIVIDER = "divider",
   ALERT = "alert",
+  // Fallback for fields whose type couldn't be determined
   UNKNOWN = "unknown",
+  /** @deprecated Backend signals dropdown via populated `options` instead. Kept for legacy callers. */
+  SELECT = "select",
 }
 
 // ─── Config / System ─────────────────────────────────────────

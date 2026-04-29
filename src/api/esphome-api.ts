@@ -399,7 +399,7 @@ export class ESPHomeAPI {
     args: {
       component_id: string;
       fields?: Record<string, unknown>;
-      sub_entities?: Record<string, Record<string, unknown>>;
+      sub_entries?: Record<string, Record<string, unknown>>;
     }
   ): Promise<AddComponentResponse> {
     return this.sendCommand<AddComponentResponse>("devices/add_component", {
