@@ -93,6 +93,7 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
         display: flex;
         flex-direction: row;
         align-items: center;
+        width: 100%;
         gap: var(--wa-space-l);
         padding-bottom: var(--wa-space-m);
         margin-bottom: var(--wa-space-m);
@@ -103,7 +104,7 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
         display: flex;
         flex-direction: column;
         flex: 1;
-        gap: var(--wa-space-2xs);
+        gap: var(--wa-space-s);
         min-width: 0;
       }
 
@@ -119,8 +120,8 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 110px;
-        height: 80px;
+        width: 140px;
+        height: 100px;
         padding: var(--wa-space-s);
         background: var(--wa-color-surface-lowered);
         border-radius: var(--wa-border-radius-l);
@@ -135,7 +136,7 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
 
       .section-title {
         margin: 0;
-        font-size: var(--wa-font-size-m);
+        font-size: var(--wa-font-size-l);
         font-weight: var(--wa-font-weight-bold);
         color: var(--wa-color-text-normal);
       }
@@ -439,6 +440,14 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
     return values;
   }
 
+  private _onImageError(e: Event) {
+    const img = e.target as HTMLImageElement;
+    const fallback = "/assets/board/default.svg";
+    if (img.src !== window.location.origin + fallback && !img.src.endsWith(fallback)) {
+      img.src = fallback;
+    }
+  }
+
   protected render() {
     if (this._loading) {
       return html`<div class="loading"><wa-spinner></wa-spinner></div>`;
@@ -475,6 +484,7 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
           <img
             src=${this._config.image_url || "/assets/board/default.svg"}
             alt=${this._config.title}
+            @error=${this._onImageError}
           />
         </div>
       </div>
