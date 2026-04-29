@@ -573,6 +573,7 @@ export class ESPHomeDeviceSectionConfig extends LitElement {
         entries: component.config_entries,
       };
       this._values = this._parseYamlSectionValues(yaml);
+      console.debug("[SectionConfig] parsed values:", this._values);
       this._presentComponents = this._parseTopLevelComponents(yaml);
       this._yaml = yaml;
     } catch (e) {
