@@ -451,11 +451,6 @@ export class ESPHomeDeviceNavigator extends LitElement {
     } else {
       sectionKey = item.key;
     }
-    console.debug("[Navigator] click item:", {
-      key: item.key,
-      platform: item.platform,
-      sectionKey,
-    });
 
     if (this._selectedLine === fromLine) {
       this.selectedKey = null;
