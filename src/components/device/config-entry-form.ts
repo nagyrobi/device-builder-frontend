@@ -390,52 +390,6 @@ export class ESPHomeConfigEntryForm extends LitElement {
       }
 
       /* ─── ID reference picker option layout ──────────────────── */
-      .ref-row {
-        display: flex;
-        align-items: stretch;
-        gap: var(--wa-space-2xs);
-      }
-
-      .ref-row wa-select {
-        flex: 1;
-        min-width: 0;
-      }
-
-      .ref-add-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 0 var(--wa-space-s);
-        background: transparent;
-        border: var(--wa-border-width-s) solid var(--wa-color-surface-border);
-        border-radius: var(--wa-border-radius-m);
-        color: var(--wa-color-text-quiet);
-        font-family: inherit;
-        font-size: var(--wa-font-size-xs);
-        font-weight: var(--wa-font-weight-bold);
-        cursor: pointer;
-        white-space: nowrap;
-        transition:
-          background 0.12s,
-          border-color 0.12s,
-          color 0.12s;
-      }
-
-      .ref-add-btn:hover:not(:disabled) {
-        background: var(--esphome-primary);
-        border-color: var(--esphome-primary);
-        color: var(--esphome-on-primary);
-      }
-
-      .ref-add-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      .ref-add-btn wa-icon {
-        font-size: 14px;
-      }
-
       .id-option-stack {
         display: inline-flex;
         flex-direction: column;
@@ -443,10 +397,32 @@ export class ESPHomeConfigEntryForm extends LitElement {
         line-height: 1.25;
       }
 
+      /* Visually distinguish the "Add new …" entry at the bottom of
+         the dropdown — same pattern as Home Assistant's entity
+         pickers. Coloured to read as an action, not a value. */
+      .id-option-add {
+        border-top: var(--wa-border-width-s) solid
+          var(--wa-color-surface-border);
+        margin-top: var(--wa-space-2xs);
+        padding-top: var(--wa-space-2xs);
+      }
+
+      .id-option-primary-add {
+        color: var(--esphome-primary);
+        font-weight: var(--wa-font-weight-bold);
+      }
+
+      .id-option-primary-add wa-icon {
+        font-size: 14px;
+      }
+
       .id-option-primary {
         font-size: var(--wa-font-size-s);
         font-weight: var(--wa-font-weight-semibold);
         color: var(--wa-color-text-normal);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
       }
 
       .id-option-secondary {
@@ -885,6 +861,14 @@ export class ESPHomeConfigEntryForm extends LitElement {
     `;
   }
 
+  /**
+   * Sentinel value for the "Add new <domain>" entry inside the
+   * ID-reference dropdown. When the wa-select fires `change` with
+   * this value we route to the add-component flow instead of writing
+   * it as a config value.
+   */
+  private static readonly ADD_NEW_SENTINEL = "__esphome_add_new__";
+
   private _renderIdReferenceField(entry: ConfigEntry, path: string[]) {
     const domain = entry.references_component || "";
     const candidates = this._findReferencedComponents(this.yaml, domain);
@@ -892,36 +876,53 @@ export class ESPHomeConfigEntryForm extends LitElement {
     const invalid = this._errorAt(path) !== null;
     const empty = candidates.length === 0;
 
-    // Inline "+ Add new <domain>" button — clicking emits an event the
-    // parent dialog/page handles by opening the add-component dialog
-    // filtered to this domain. Works the same whether the dropdown is
-    // empty (only option to make progress) or already has candidates
-    // (user wants to add another).
-    const addButton = html`
-      <button
-        type="button"
-        class="ref-add-btn"
-        ?disabled=${this.disabled}
-        title=${this._localize("device.id_reference_add", { domain })}
-        @click=${() => this._requestAddComponent(domain)}
+    const onChange = (e: Event) => {
+      const select = e.target as HTMLSelectElement;
+      const next = select.value;
+      if (next === ESPHomeConfigEntryForm.ADD_NEW_SENTINEL) {
+        // Revert the displayed value so the dropdown isn't stuck
+        // showing "Add new …" while we navigate away. (For the
+        // section-editor case the form stays mounted; for the dialog
+        // case the form unmounts.)
+        select.value = value;
+        this._requestAddComponent(domain);
+        return;
+      }
+      this._emitChange(path, next);
+    };
+
+    // The "Add new <domain>" option lives at the bottom of the
+    // dropdown — same affordance as Home Assistant's entity pickers.
+    // When it's the only option (empty state) the dropdown becomes
+    // a single-call-to-action.
+    const addOption = html`
+      <wa-option
+        class="id-option id-option-add"
+        value=${ESPHomeConfigEntryForm.ADD_NEW_SENTINEL}
       >
-        <wa-icon library="mdi" name="plus"></wa-icon>
-        ${this._localize("device.id_reference_add", { domain })}
-      </button>
+        <span class="id-option-stack">
+          <span class="id-option-primary id-option-primary-add">
+            <wa-icon library="mdi" name="plus"></wa-icon>
+            ${this._localize("device.id_reference_add", { domain })}
+          </span>
+        </span>
+      </wa-option>
     `;
 
     if (empty) {
       return html`
         <div class="field" data-field-key=${path.join(".")}>
           ${this._renderLabel(entry)}
-          <div class="ref-row">
-            <wa-select class=${invalid ? "invalid" : ""} disabled>
-              <wa-option value="" selected>
-                ${this._localize("device.id_reference_empty", { domain })}
-              </wa-option>
-            </wa-select>
-            ${addButton}
-          </div>
+          <wa-select
+            class=${invalid ? "invalid" : ""}
+            ?disabled=${this.disabled}
+            placeholder=${this._localize("device.id_reference_empty", {
+              domain,
+            })}
+            @change=${onChange}
+          >
+            ${addOption}
+          </wa-select>
           ${this._fieldErrorAt(path)}
         </div>
       `;
@@ -930,31 +931,28 @@ export class ESPHomeConfigEntryForm extends LitElement {
     return html`
       <div class="field" data-field-key=${path.join(".")}>
         ${this._renderLabel(entry)}
-        <div class="ref-row">
-          <wa-select
-            class=${invalid ? "invalid" : ""}
-            ?disabled=${this.disabled}
-            @change=${(e: Event) =>
-              this._emitChange(path, (e.target as HTMLSelectElement).value)}
-          >
-            ${candidates.map(
-              (c) => html`<wa-option
-                class="id-option"
-                value=${c.id}
-                .label=${c.name || c.id}
-                ?selected=${c.id === value}
-              >
-                <span class="id-option-stack">
-                  <span class="id-option-primary">${c.name || c.id}</span>
-                  <span class="id-option-secondary"
-                    >${c.name ? `${c.id} · ${domain}` : domain}</span
-                  >
-                </span>
-              </wa-option>`,
-            )}
-          </wa-select>
-          ${addButton}
-        </div>
+        <wa-select
+          class=${invalid ? "invalid" : ""}
+          ?disabled=${this.disabled}
+          @change=${onChange}
+        >
+          ${candidates.map(
+            (c) => html`<wa-option
+              class="id-option"
+              value=${c.id}
+              .label=${c.name || c.id}
+              ?selected=${c.id === value}
+            >
+              <span class="id-option-stack">
+                <span class="id-option-primary">${c.name || c.id}</span>
+                <span class="id-option-secondary"
+                  >${c.name ? `${c.id} · ${domain}` : domain}</span
+                >
+              </span>
+            </wa-option>`,
+          )}
+          ${addOption}
+        </wa-select>
         ${this._fieldErrorAt(path)}
       </div>
     `;

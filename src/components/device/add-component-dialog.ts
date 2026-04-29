@@ -76,6 +76,18 @@ export class ESPHomeAddComponentDialog extends LitElement {
   @state()
   private _returnTo: ComponentCatalogEntry | null = null;
 
+  /** Domain the dep detour was started for (e.g. "output"). Used to
+   * locate the matching `references_component` field on the original
+   * form so we can pre-fill it with the just-created component's id. */
+  @state()
+  private _depDomain: string | null = null;
+
+  /** Pre-fill payload handed to the restored form on its next mount.
+   *  Cleared after the form mounts so it doesn't apply to subsequent
+   *  selections. */
+  @state()
+  private _prefillReference: { domain: string; id: string } | null = null;
+
   static styles = [
     espHomeStyles,
     css`
@@ -173,8 +185,8 @@ export class ESPHomeAddComponentDialog extends LitElement {
   ];
 
   public open() {
+    this._resetDetourState();
     this._selected = null;
-    this._returnTo = null;
     this._submitError = "";
     this._submitting = false;
     this._dialog.open = true;
@@ -189,12 +201,18 @@ export class ESPHomeAddComponentDialog extends LitElement {
    * catalog.
    */
   public openWithSearch(domain: string) {
+    this._resetDetourState();
     this._selected = null;
-    this._returnTo = null;
     this._submitError = "";
     this._submitting = false;
     this._dialog.open = true;
     this.updateComplete.then(() => this._catalog?.filterByDomain(domain));
+  }
+
+  private _resetDetourState() {
+    this._returnTo = null;
+    this._depDomain = null;
+    this._prefillReference = null;
   }
 
   protected render() {
@@ -241,6 +259,7 @@ export class ESPHomeAddComponentDialog extends LitElement {
               .component=${this._selected!}
               .board=${this.board}
               .yaml=${this.yaml}
+              .prefillReference=${this._prefillReference}
               .submitting=${this._submitting}
               .submitError=${this._submitError}
             ></esphome-add-component-form>`
@@ -262,8 +281,9 @@ export class ESPHomeAddComponentDialog extends LitElement {
     // back at the original component they were filling in, instead of
     // sending them to the catalog and losing context.
     if (this._returnTo) {
-      this._selected = this._returnTo;
-      this._returnTo = null;
+      const restore = this._returnTo;
+      this._resetDetourState();
+      this._selected = restore;
       this._submitError = "";
       return;
     }
@@ -274,19 +294,16 @@ export class ESPHomeAddComponentDialog extends LitElement {
   /**
    * Switch to the catalog view filtered to a missing dependency's
    * domain. Remember the component the user was in the middle of
-   * adding so we can restore it after they finish adding the
-   * dependency.
+   * adding (and the domain) so we can restore + prefill after they
+   * finish adding the dependency.
    */
   private async _onNavigateToDep(e: CustomEvent<{ domain: string }>) {
     e.stopPropagation();
     if (this._submitting) return;
     const { domain } = e.detail;
-    // Stash the component the user was filling in so we can return to
-    // it after the dep is added (only when the trigger came from the
-    // form view — clicks from elsewhere don't have anything to return
-    // to).
     if (this._selected) {
       this._returnTo = this._selected;
+      this._depDomain = domain;
     }
     this._selected = null;
     this._submitError = "";
@@ -325,11 +342,29 @@ export class ESPHomeAddComponentDialog extends LitElement {
         // which now contains the dep, so the ID-reference dropdown
         // will be populated.
         const restore = this._returnTo;
+        const depDomain = this._depDomain;
+        // If the component the user just added matches the dep domain
+        // we navigated for, hand the new id to the restored form so
+        // it pre-selects it in the matching reference field. Match by
+        // category to defend against the user picking something else
+        // from the filtered catalog.
+        const newId = e.detail.fields["id"];
+        if (
+          depDomain &&
+          typeof newId === "string" &&
+          this._selected.category === depDomain
+        ) {
+          this._prefillReference = { domain: depDomain, id: newId };
+        } else {
+          this._prefillReference = null;
+        }
         this._returnTo = null;
+        this._depDomain = null;
         this._selected = restore;
       } else {
         this._dialog.open = false;
         this._selected = null;
+        this._resetDetourState();
       }
     } catch (err) {
       this._submitError = err instanceof Error

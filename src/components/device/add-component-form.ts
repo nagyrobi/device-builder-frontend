@@ -48,6 +48,16 @@ export class ESPHomeAddComponentForm extends LitElement {
   @property()
   yaml = "";
 
+  /**
+   * Optional initial value for an ID-reference field. Used by the
+   * dialog after a "+ Add <domain>" detour finishes — we pre-fill the
+   * just-created component's id into the original form's matching
+   * `references_component: <domain>` field, so the user doesn't have
+   * to pick from the dropdown again.
+   */
+  @property({ attribute: false })
+  prefillReference: { domain: string; id: string } | null = null;
+
   @property({ type: Boolean })
   submitting = false;
 
@@ -151,6 +161,53 @@ export class ESPHomeAddComponentForm extends LitElement {
     if (idEntry && this._values["id"] === undefined) {
       this._values = { ...this._values, id: this._generateDefaultId() };
     }
+
+    // If we were just brought back from a "+ Add <domain>" detour,
+    // pre-fill the field that referenced that domain with the id of
+    // the component the user just created — saves them an extra
+    // dropdown click.
+    if (this.prefillReference) {
+      const targetPath = this._findReferencePath(
+        this.component.config_entries,
+        this.prefillReference.domain,
+        [],
+      );
+      if (targetPath) {
+        this._values = setIn(
+          this._values,
+          targetPath,
+          this.prefillReference.id,
+        );
+      }
+    }
+  }
+
+  /**
+   * Walk the schema recursively to find the path of the first entry
+   * with `references_component === domain`. Returns null if the
+   * schema doesn't reference the domain — defensive against the
+   * dialog passing a prefill that doesn't apply to this form.
+   */
+  private _findReferencePath(
+    entries: ConfigEntry[],
+    domain: string,
+    prefix: string[],
+  ): string[] | null {
+    for (const entry of entries) {
+      if (entry.type === ConfigEntryType.NESTED) {
+        const found = this._findReferencePath(
+          entry.config_entries ?? [],
+          domain,
+          [...prefix, entry.key],
+        );
+        if (found) return found;
+        continue;
+      }
+      if (entry.references_component === domain) {
+        return [...prefix, entry.key];
+      }
+    }
+    return null;
   }
 
   /**
