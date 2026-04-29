@@ -1,6 +1,6 @@
 {
   "dashboard": {
-    "title": "ESPHome - aanmaken en bewerken",
+    "title": "ESPHome - Device Builder",
     "subtitle": "Maak en bouw uw slimme apparaten en automatiseringen",
     "discovered_count": "{count} apparaat gevonden",
     "show": "Tonen",

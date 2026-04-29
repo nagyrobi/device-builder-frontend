@@ -1,6 +1,6 @@
 {
   "dashboard": {
-    "title": "ESPHome - create and edit",
+    "title": "ESPHome - Device Builder",
     "subtitle": "Create and make your smart devices and automations",
     "discovered_count": "Discovered {count} device",
     "show": "Show",

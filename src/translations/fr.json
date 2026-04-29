@@ -1,6 +1,6 @@
 {
   "dashboard": {
-    "title": "ESPHome - créer et éditer",
+    "title": "ESPHome - Device Builder",
     "subtitle": "Créez et fabriquez vos appareils intelligents et automatisations",
     "discovered_count": "{count} appareil détecté",
     "show": "Afficher",
