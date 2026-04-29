@@ -187,3 +187,78 @@ export function parseYamlAutomations(yaml: string): YamlSection[] {
 
   return automations;
 }
+
+/**
+ * Locate the YAML section corresponding to a component that was just
+ * added. Used to auto-select that section in the navigator/editor so
+ * the user lands on whatever they just created instead of staring at
+ * the previously-selected component.
+ *
+ * `componentId` is the catalog id (e.g. `"wifi"`, `"output.gpio"`,
+ * `"binary_sensor.template"`). `newId` is the id field that was
+ * submitted (used to disambiguate between multiple instances of the
+ * same platform under the same parent block).
+ *
+ * Returns null when nothing matches — the caller falls back to leaving
+ * the previous selection alone.
+ */
+export function findAddedSection(
+  yaml: string,
+  componentId: string,
+  newId: string | undefined,
+): { sectionKey: string; fromLine: number } | null {
+  const sections = parseYamlTopLevelSections(yaml);
+
+  // Top-level (non-platform) component — match the bare key, e.g.
+  // adding "wifi" navigates to the `wifi:` block.
+  if (!componentId.includes(".")) {
+    const match = sections.find(
+      (s) => s.key === componentId && !s.platform,
+    );
+    if (match) return { sectionKey: match.key, fromLine: match.fromLine };
+  }
+
+  // Platform-based component — find the list item(s) under the parent
+  // block whose computed sectionKey matches componentId.
+  const candidates = sections.filter(
+    (s) => sectionKeyOf(s) === componentId,
+  );
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) {
+    return {
+      sectionKey: sectionKeyOf(candidates[0]),
+      fromLine: candidates[0].fromLine,
+    };
+  }
+
+  // Disambiguate by the submitted id when multiple instances exist
+  // (the common "I added a second sensor.dht" case).
+  if (newId) {
+    const lines = yaml.split("\n");
+    const idRe = new RegExp(`^\\s+(?:-\\s+)?id:\\s*["']?${newId}["']?\\s*$`);
+    for (const s of candidates) {
+      for (let i = s.fromLine - 1; i < s.toLine && i < lines.length; i++) {
+        if (idRe.test(lines[i])) {
+          return { sectionKey: sectionKeyOf(s), fromLine: s.fromLine };
+        }
+      }
+    }
+  }
+
+  // Last resort: pick the candidate that appears latest in the file.
+  // The backend typically appends, so the new one is at the bottom.
+  const last = candidates[candidates.length - 1];
+  return { sectionKey: sectionKeyOf(last), fromLine: last.fromLine };
+}
+
+/**
+ * Compute the section key the navigator uses for a YamlSection. For
+ * platform list items, that's `<parent>.<platform>` (de-duplicating
+ * if the platform is already namespaced); otherwise just `key`.
+ */
+function sectionKeyOf(section: YamlSection): string {
+  if (!section.platform) return section.key;
+  return section.platform.startsWith(`${section.key}.`)
+    ? section.platform
+    : `${section.key}.${section.platform}`;
+}

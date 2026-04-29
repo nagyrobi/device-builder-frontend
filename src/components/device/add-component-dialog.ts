@@ -7,6 +7,7 @@ import type {
   ComponentCatalogEntry,
 } from "../../api/types.js";
 import type { ESPHomeAPI } from "../../api/index.js";
+import { findAddedSection } from "../../util/yaml-sections.js";
 import type { LocalizeFunc } from "../../common/localize.js";
 import { localizeContext, apiContext } from "../../context/index.js";
 import { espHomeStyles } from "../../styles/shared.js";
@@ -362,6 +363,27 @@ export class ESPHomeAddComponentDialog extends LitElement {
         this._depDomain = null;
         this._selected = restore;
       } else {
+        // Auto-select the just-added component so the navigator
+        // highlights it and the section editor jumps to its block.
+        // Falls through silently if we can't find it — better to
+        // leave the previous selection alone than navigate somewhere
+        // wrong.
+        const componentId = this._selected.id;
+        const newId = e.detail.fields["id"];
+        const target = findAddedSection(
+          yaml,
+          componentId,
+          typeof newId === "string" ? newId : undefined,
+        );
+        if (target) {
+          this.dispatchEvent(
+            new CustomEvent("section-select", {
+              detail: target,
+              bubbles: true,
+              composed: true,
+            }),
+          );
+        }
         this._dialog.open = false;
         this._selected = null;
         this._resetDetourState();
