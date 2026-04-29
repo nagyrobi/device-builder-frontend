@@ -59,6 +59,15 @@ export interface ConfigEntryValueChange {
   value: unknown;
 }
 
+/**
+ * Entry keys that the form keeps visible even when `requiredOnly` is
+ * on. `name` becomes the entity's friendly name in Home Assistant, so
+ * even though most schemas mark it optional we want to ask for it
+ * up-front when the user is creating something — fewer trips back to
+ * the section editor for a label they always want.
+ */
+const ALWAYS_SHOWN_KEYS: Set<string> = new Set(["name"]);
+
 @customElement("esphome-config-entry-form")
 export class ESPHomeConfigEntryForm extends LitElement {
   @consume({ context: localizeContext, subscribe: true })
@@ -485,9 +494,14 @@ export class ESPHomeConfigEntryForm extends LitElement {
         const childValues = this._scopeValues([entry.key]);
         const renderableChildren = this._filterRenderable(childList, childValues);
         if (renderableChildren.length === 0) continue;
-      } else if (this.requiredOnly && !entry.required) {
-        // In required-only mode, drop optional leaves outright. The
-        // visibility/advanced filters above already handle the rest.
+      } else if (
+        this.requiredOnly &&
+        !entry.required &&
+        !ALWAYS_SHOWN_KEYS.has(entry.key)
+      ) {
+        // In required-only mode, drop optional leaves outright unless
+        // they're on the always-shown allowlist (e.g. `name`, which is
+        // optional but worth asking up-front for sensors/switches/lights).
         continue;
       }
       out.push(entry);
