@@ -30,6 +30,20 @@ export const tableLayoutStyles = css`
     flex-shrink: 0;
   }
 
+  @media (max-width: 700px) {
+    .controls {
+      flex-wrap: wrap;
+    }
+
+    .controls ::slotted([slot="toolbar"]) {
+      flex: 1 1 100%;
+    }
+
+    .controls-right {
+      margin-left: auto;
+    }
+  }
+
   /* ─── Table ─── */
 
   .table-wrap {

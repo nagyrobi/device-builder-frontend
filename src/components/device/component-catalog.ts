@@ -308,11 +308,57 @@ export class ESPHomeComponentCatalog extends LitElement {
         padding-right: var(--wa-space-2xs);
       }
 
+      /* Cards have a 56px thumbnail + title + expand button + footer
+         actions, so they need a fair bit of horizontal room before
+         the title stops being readable. Use auto-fill + minmax so
+         the grid drops from 2 → 1 column as soon as a card would
+         shrink below ~340px, regardless of the dialog/sidebar
+         width. Avoids hard viewport breakpoints for the card count. */
       .components-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
         gap: 8px;
         align-content: start;
+      }
+
+      /* Below ~600px (modal viewport on phones) the fixed 160px
+         category sidebar + search input no longer fit alongside the
+         grid. Collapse the sidebar into a horizontal scrolling chip
+         row above the grid. The grid itself already collapses to a
+         single column via the auto-fill rule above. */
+      @media (max-width: 600px) {
+        :host {
+          flex-direction: column;
+          height: auto;
+          max-height: 70vh;
+        }
+
+        .sidebar {
+          width: 100%;
+          flex-direction: row;
+          gap: var(--wa-space-2xs);
+          padding-right: 0;
+          padding-bottom: var(--wa-space-s);
+          margin-bottom: var(--wa-space-s);
+          overflow-x: auto;
+          overflow-y: hidden;
+          border-right: none;
+          border-bottom: 1px solid var(--wa-color-surface-border);
+        }
+
+        .sidebar-label {
+          display: none;
+        }
+
+        .category-btn {
+          flex-shrink: 0;
+          white-space: nowrap;
+        }
+
+        .main {
+          padding-left: 0;
+          padding-right: 0;
+        }
       }
 
       .component-card {
