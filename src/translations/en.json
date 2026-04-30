@@ -305,7 +305,6 @@
     "section_automations_desc": "You can set up automations once the core config and at least one component is added.",
     "editor_title": "Choose components for your {name}",
     "editor_title_no_components": "Choose components for your {name}",
-    "editor_title_no_automations": "Add automations for your {name}",
     "editor_title_ready": "Editing {name}",
     "layout_components_only": "Show components only",
     "layout_split": "Split view",

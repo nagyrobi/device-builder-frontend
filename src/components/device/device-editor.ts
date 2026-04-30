@@ -17,7 +17,6 @@ import { registerMdiIcons } from "../../util/register-icons.js";
 import { deviceEditorStyles } from "./device-editor.styles.js";
 import {
   categorizeSections,
-  parseYamlAutomations,
   parseYamlTopLevelSections,
 } from "../../util/yaml-sections.js";
 import type { HighlightRange } from "../yaml-editor.js";
@@ -146,15 +145,20 @@ export class ESPHomeDeviceEditor extends LitElement {
           : "editor-layout--right";
 
     const { components } = categorizeSections(parseYamlTopLevelSections(this.yaml));
-    const automations = parseYamlAutomations(this.yaml);
     const hasComponents = components.length > 0;
-    const hasAutomations = automations.length > 0;
 
+    // Two-state title: a "what to do next" hint only when the device
+    // is empty (no components yet); otherwise just "Editing <name>".
+    // The middle "now add automations" state was confusing — the title
+    // shouldn't read like an instruction once the user is past the
+    // initial setup step.
     const title = !hasComponents
-      ? this._localize("device.editor_title_no_components", { name: this.deviceTitle })
-      : !hasAutomations
-        ? this._localize("device.editor_title_no_automations", { name: this.deviceTitle })
-        : this._localize("device.editor_title_ready", { name: this.deviceTitle });
+      ? this._localize("device.editor_title_no_components", {
+          name: this.deviceTitle,
+        })
+      : this._localize("device.editor_title_ready", {
+          name: this.deviceTitle,
+        });
 
     return html`
       <section class="card">

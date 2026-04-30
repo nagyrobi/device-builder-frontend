@@ -296,7 +296,6 @@
     "add_config_error": "Toevoegen van configuratiesectie mislukt",
     "editor_layout_label": "Editor-indeling",
     "editor_title_no_components": "Kies componenten voor uw {name}",
-    "editor_title_no_automations": "Voeg automatiseringen toe voor uw {name}",
     "editor_title_ready": "{name} bewerken",
     "more_info": "Meer info"
   },

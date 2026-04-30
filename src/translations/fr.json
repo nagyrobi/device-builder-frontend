@@ -296,7 +296,6 @@
     "add_config_error": "Échec de l'ajout de la section de configuration",
     "editor_layout_label": "Disposition de l'éditeur",
     "editor_title_no_components": "Choisissez des composants pour votre {name}",
-    "editor_title_no_automations": "Ajoutez des automatisations pour votre {name}",
     "editor_title_ready": "Édition de {name}",
     "more_info": "Plus d'infos"
   },
