@@ -90,13 +90,7 @@ export function parseYamlTopLevelSections(yaml: string): YamlSection[] {
   const rawSections: Array<{ key: string; fromLine: number; toLine: number }> = [];
 
   for (let i = 0; i < lines.length; i++) {
-    // Accept `.` in the key as a defensive measure: a buggy
-    // backend (or hand-edited file) might have left a flat
-    // `time.homeassistant:` style top-level key in place. Without
-    // the dot the regex skipped that line entirely and the
-    // *previous* section's range would expand to swallow it,
-    // mis-attributing its `id:` to the wrong block in the navigator.
-    const match = lines[i].match(/^([a-zA-Z_][a-zA-Z0-9_.]*):/);
+    const match = lines[i].match(/^([a-zA-Z_][a-zA-Z0-9_]*):/);
     if (match) {
       if (rawSections.length > 0) {
         rawSections[rawSections.length - 1].toLine = i;
