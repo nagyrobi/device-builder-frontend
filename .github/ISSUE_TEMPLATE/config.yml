@@ -1,19 +1,28 @@
 # With `blank_issues_enabled: false` and no issue templates defined,
 # the new-issue chooser shows nothing but these contact links — users
-# are funnelled straight to the right tracker. Maintainers can still
+# are funnelled straight to the right channel. Maintainers can still
 # open issues directly via the /issues/new URL when needed.
 blank_issues_enabled: false
 contact_links:
+  - name: 📋 Check the backlog first
+    url: https://github.com/orgs/esphome/projects/7/views/1?filterQuery=project%3A%22device-builder-dashboard%22
+    about: |
+      Browse what's already planned, in progress, or shipped before
+      filing — saves duplicates and gives you a feel for the
+      direction the project is heading.
+
   - name: 🐛 Report a bug
     url: https://github.com/esphome/device-builder-dashboard-backend/issues/new?labels=bug
     about: |
-      All bug reports — UI included — go on the backend tracker so
-      we can triage in one place.
+      All bug reports — UI included — go on the backend tracker
+      so we can triage in one place.
 
-  - name: 💡 Request a feature
-    url: https://github.com/esphome/device-builder-dashboard-backend/issues/new?labels=enhancement
+  - name: 💡 Request / discuss a feature
+    url: https://github.com/orgs/esphome/discussions
     about: |
-      Have an idea? File it on the backend tracker.
+      Feature ideas land in the ESPHome org-wide discussions.
+      It's the right venue for shaping a request before it becomes
+      a tracked backlog item.
 
   - name: 💬 ESPHome Discord
     url: https://discord.gg/KhAMKrd

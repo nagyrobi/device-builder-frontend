@@ -13,9 +13,16 @@ A web-based dashboard for managing, configuring, and deploying ESPHome IoT devic
 - **[CodeMirror](https://codemirror.net/)** — YAML editor with syntax highlighting
 - **[Sonner](https://sonner.emilkowal.dev/)** — Toast notifications
 
-## Issues
+## Backlog
 
-Please file bug reports and feature requests on the **[backend issue tracker](https://github.com/esphome/device-builder-dashboard-backend/issues)** — UI issues live there too so we can triage everything in one place. The new-issue chooser on this repo only surfaces links to the right places.
+Before filing anything, take a look at the **[shared backlog](https://github.com/orgs/esphome/projects/7/views/1?filterQuery=project%3A%22device-builder-dashboard%22)** — it lists everything that's already planned, in progress, or shipped for the dashboard. Saves duplicates and gives you a feel for where the project is heading.
+
+## Issues and feature requests
+
+The new-issue chooser on this repo only surfaces redirect links — there's no way to file a generic issue here.
+
+- **🐛 Bugs** → [backend issue tracker](https://github.com/esphome/device-builder-dashboard-backend/issues). UI bugs go there too so we can triage everything in one place.
+- **💡 Feature ideas** → [ESPHome org discussions](https://github.com/orgs/esphome/discussions) or the [Discord](https://discord.gg/KhAMKrd). Once a request is shaped enough to be actionable a maintainer adds it to the backlog above.
 
 ## Contributing — local development
 
