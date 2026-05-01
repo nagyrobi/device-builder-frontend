@@ -399,14 +399,48 @@ export class ESPHomeFirmwareInstallDialog extends LitElement {
     this._detected = detected;
 
     // 2. Verify chip matches device platform
+    //
+    // `device.target_platform` only carries the YAML's top-level
+    // platform key — every ESP32 variant (C3/S2/S3/C6/...) reports as
+    // plain "esp32" until the first compile fills in the specifics, so
+    // on freshly-created devices the coarse string would falsely
+    // reject a perfectly correct chip. Resolve the actual variant via
+    // the board catalog (same approach the wizard uses), and only
+    // strict-compare when we got authoritative info back.
     this._statusMessage = this._localize("firmware.status_verifying");
     const detectedNorm = normalizeChipName(detected.chipName);
-    const expectedPlatform = device.target_platform;
-    const expectedNorm = expectedPlatform ? expectedPlatform.toLowerCase().replace(/-/g, "") : "";
-    console.debug("[Web Serial] Detected chip:", detected.chipName, "→", detectedNorm, "| Expected:", expectedPlatform, "→", expectedNorm);
-    if (expectedNorm && expectedNorm !== "unknown" && detectedNorm !== expectedNorm) {
+    let expected = device.target_platform;
+    let hasAuthoritativeVariant = false;
+    if (device.board_id) {
+      try {
+        const board = await this._api.getBoard(device.board_id);
+        const variant = board?.esphome.variant ?? board?.esphome.platform;
+        if (variant) {
+          expected = variant;
+          hasAuthoritativeVariant = true;
+        }
+      } catch {
+        // Network hiccup — fall back to target_platform below.
+      }
+    }
+    const expectedNorm = expected ? expected.toLowerCase().replace(/-/g, "") : "";
+    // Without a resolved variant, "esp32" can stand in for any ESP32
+    // family chip — don't reject the install in that case.
+    const expectedIsCoarseEsp32 =
+      !hasAuthoritativeVariant && expectedNorm === "esp32";
+    console.debug(
+      "[Web Serial] Detected chip:", detected.chipName, "→", detectedNorm,
+      "| Expected:", expected, "→", expectedNorm,
+      "| authoritative:", hasAuthoritativeVariant,
+    );
+    if (
+      expectedNorm &&
+      expectedNorm !== "unknown" &&
+      detectedNorm !== expectedNorm &&
+      !(expectedIsCoarseEsp32 && detectedNorm.startsWith("esp32"))
+    ) {
       try { await disconnect(detected.transport); } catch { /* ignore */ }
-      this._fail(this._localize("firmware.chip_mismatch", { detected: detected.chipName, expected: expectedPlatform }));
+      this._fail(this._localize("firmware.chip_mismatch", { detected: detected.chipName, expected }));
       return;
     }
 
