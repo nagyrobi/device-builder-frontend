@@ -8,6 +8,7 @@ import {
   mdiDownload,
   mdiFileDownloadOutline,
   mdiKeyVariant,
+  mdiOpenInNew,
   mdiPencil,
   mdiRenameOutline,
   mdiUpload,
@@ -31,6 +32,7 @@ registerMdiIcons({
   download: mdiDownload,
   "file-download-outline": mdiFileDownloadOutline,
   "key-variant": mdiKeyVariant,
+  "open-in-new": mdiOpenInNew,
   pencil: mdiPencil,
   "rename-outline": mdiRenameOutline,
   upload: mdiUpload,
@@ -114,6 +116,15 @@ export class ESPHomeTableRowMenu extends LitElement {
         background: color-mix(in srgb, var(--esphome-primary), transparent 92%);
       }
 
+      /* The Visit-web-UI item renders as an <a> so the browser
+         enforces rel="noopener noreferrer" instead of relying on a
+         flaky window.open flag. Reset anchor defaults so it visually
+         matches the surrounding <div class="menu-item"> items. */
+      .menu-item--link {
+        text-decoration: none;
+        color: inherit;
+      }
+
       .menu-item wa-icon {
         font-size: 16px;
         color: var(--wa-color-text-quiet);
@@ -174,6 +185,7 @@ export class ESPHomeTableRowMenu extends LitElement {
           <wa-icon library="mdi" name="console"></wa-icon>
           ${this._localize("dashboard.drawer_logs")}
         </div>
+        ${this._renderVisitWebUi()}
         <div class="menu-divider"></div>
         ${this.device?.api_encrypted
           ? html`<div class="menu-item" @click=${() => this._emit("show-api-key")}>
@@ -276,6 +288,36 @@ export class ESPHomeTableRowMenu extends LitElement {
       }),
     );
     this._close();
+  }
+
+  private _renderVisitWebUi() {
+    // Render only when we actually have somewhere to send the user:
+    // a port from the YAML's ``web_server:`` block AND a resolvable
+    // host. ``ip`` stays empty until the device has been seen online,
+    // and ``address`` should always be populated from StorageJSON,
+    // but the guard means the menu item never appears as a no-op.
+    if (this.device == null || this.device.web_port == null) return nothing;
+    const host = this.device.address || this.device.ip;
+    if (!host) return nothing;
+    const port = this.device.web_port;
+    const url = `http://${host}${port === 80 ? "" : `:${port}`}`;
+    // Anchor element with ``rel="noopener noreferrer"`` is the
+    // codebase's standard external-link pattern; the browser enforces
+    // the security defaults instead of relying on
+    // ``window.open(..., "noopener")`` which doesn't suppress the
+    // Referer header and isn't honoured uniformly across browsers.
+    return html`
+      <a
+        class="menu-item menu-item--link"
+        href=${url}
+        target="_blank"
+        rel="noopener noreferrer"
+        @click=${this._close}
+      >
+        <wa-icon library="mdi" name="open-in-new"></wa-icon>
+        ${this._localize("dashboard.action_visit_web_ui")}
+      </a>
+    `;
   }
 }
 
