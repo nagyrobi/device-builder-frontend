@@ -80,5 +80,6 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       version: ${{ needs.check-and-release.outputs.version }}
+      github_app_id: ${{ vars.ESPHOME_GITHUB_APP_ID || secrets.ESPHOME_GITHUB_APP_ID }}
     secrets:
       ESPHOME_GITHUB_APP_PRIVATE_KEY: ${{ secrets.ESPHOME_GITHUB_APP_PRIVATE_KEY }}

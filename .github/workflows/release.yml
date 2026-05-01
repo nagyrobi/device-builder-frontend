@@ -12,11 +12,19 @@ on:
         description: "Version number (e.g. 0.2.0)"
         required: true
         type: string
+      github_app_id:
+        description: "GitHub App ID for backend PR updates. Optional when ESPHOME_GITHUB_APP_ID is available as an Actions variable or secret."
+        required: false
+        type: string
   workflow_call:
     inputs:
       version:
         description: "Version number (e.g. 0.2.0)"
         required: true
+        type: string
+      github_app_id:
+        description: "GitHub App ID for backend PR updates."
+        required: false
         type: string
     secrets:
       ESPHOME_GITHUB_APP_PRIVATE_KEY:
@@ -25,7 +33,7 @@ on:
 env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "22.x"
-  BACKEND_REPO: esphome/device-builder-dashboard-backend
+  BACKEND_REPO: esphome/device-builder
   PACKAGE_NAME: esphome-device-builder-frontend
   WHEEL_NAME: esphome_device_builder_frontend
 
@@ -125,15 +133,25 @@ jobs:
     needs: build-and-attach
     runs-on: ubuntu-latest
     steps:
+      - name: Validate GitHub App configuration
+        env:
+          GITHUB_APP_ID: ${{ inputs.github_app_id || vars.ESPHOME_GITHUB_APP_ID || secrets.ESPHOME_GITHUB_APP_ID }}
+        run: |
+          if [ -z "$GITHUB_APP_ID" ]; then
+            echo "::error::Missing GitHub App ID."
+            echo "::error::Set Actions variable ESPHOME_GITHUB_APP_ID, or provide the workflow_dispatch input github_app_id."
+            exit 1
+          fi
+
       - name: Create backend app token
         id: app-token
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
         with:
-          app-id: ${{ vars.ESPHOME_GITHUB_APP_ID || secrets.ESPHOME_GITHUB_APP_ID }}
+          app-id: ${{ inputs.github_app_id || vars.ESPHOME_GITHUB_APP_ID || secrets.ESPHOME_GITHUB_APP_ID }}
           private-key: ${{ secrets.ESPHOME_GITHUB_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: |
-            device-builder-dashboard-backend
+            device-builder
           permission-contents: write
           permission-pull-requests: write
           permission-issues: write
