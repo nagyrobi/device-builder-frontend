@@ -118,6 +118,7 @@
     "table_col_config": "Config File",
     "table_col_actions": "Actions",
     "table_action_view_progress": "View install progress",
+    "table_action_edit": "Edit configuration",
     "table_action_logs": "View logs",
     "table_action_install": "Install pending changes",
     "table_action_update": "Update to latest version",

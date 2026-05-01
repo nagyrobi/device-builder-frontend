@@ -8,6 +8,7 @@ import {
   mdiChevronUp,
   mdiCloseCircle,
   mdiDotsVertical,
+  mdiPencil,
   mdiUnfoldMoreHorizontal,
 } from "@mdi/js";
 import {
@@ -50,6 +51,7 @@ registerMdiIcons({
   "chevron-down": mdiChevronDown,
   "close-circle": mdiCloseCircle,
   "dots-vertical": mdiDotsVertical,
+  pencil: mdiPencil,
   "unfold-more-horizontal": mdiUnfoldMoreHorizontal,
 });
 
