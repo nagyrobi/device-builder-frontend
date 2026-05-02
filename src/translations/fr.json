@@ -169,7 +169,8 @@
     "install_method_back": "Retour",
     "status_modified": "Modifié",
     "status_update_available": "Mise à jour disponible",
-    "status_installing": "Installation…"
+    "status_installing": "Installation…",
+    "status_renaming": "Renommage…"
   },
   "command": {
     "install_title": "Installation — {name}",
@@ -193,6 +194,9 @@
     "clean_failed": "Échec du nettoyage.",
     "reset_success": "Environnement de compilation réinitialisé. La prochaine compilation retéléchargera la chaîne d'outils.",
     "reset_failed": "Échec de la réinitialisation de l'environnement de compilation.",
+    "rename_title": "Renommer — {name}",
+    "rename_success": "Renommage terminé !",
+    "rename_failed": "Échec du renommage.",
     "queued_title": "En file d'attente",
     "queued_message": "Une autre tâche firmware est en cours. Celle-ci démarrera à la fin.",
     "queued_waiting_for": "En attente de {name}.",
@@ -484,7 +488,9 @@
     "not_a_number": "Doit être un nombre",
     "not_an_integer": "Doit être un entier",
     "invalid_option": "Option invalide",
-    "invalid_device_name": "Uniquement minuscules, chiffres et tirets ; doit commencer/finir par une lettre ou un chiffre"
+    "invalid_device_name": "Uniquement minuscules, chiffres, tirets et underscores",
+    "device_name_underscore": "Les underscores fonctionnent mais ne sont pas des noms d'hôte mDNS valides — l'appareil peut ne pas se résoudre sur certains réseaux",
+    "device_name_edge_hyphen": "Les noms commençant ou finissant par un tiret ne sont pas des noms d'hôte mDNS valides — l'appareil peut ne pas se résoudre sur certains réseaux"
   },
   "command_palette": {
     "placeholder": "Tapez une commande ou recherchez…",

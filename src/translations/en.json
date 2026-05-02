@@ -184,7 +184,8 @@
     "context_select": "Select",
     "status_modified": "Modified",
     "status_update_available": "Update available",
-    "status_installing": "Installing…"
+    "status_installing": "Installing…",
+    "status_renaming": "Renaming…"
   },
   "command": {
     "install_title": "Install — {name}",
@@ -209,6 +210,9 @@
     "clean_failed": "Clean failed.",
     "reset_success": "Build environment reset. The next compile will redownload the toolchain.",
     "reset_failed": "Failed to reset the build environment.",
+    "rename_title": "Rename — {name}",
+    "rename_success": "Rename complete!",
+    "rename_failed": "Rename failed.",
     "queued_title": "Waiting in queue",
     "queued_message": "Another firmware task is running. This task will start when it finishes.",
     "queued_waiting_for": "Waiting for {name} to finish.",
@@ -465,7 +469,9 @@
     "not_a_number": "Must be a number",
     "not_an_integer": "Must be a whole number",
     "invalid_option": "Not a valid option",
-    "invalid_device_name": "Only lowercase letters, digits and hyphens; must start/end with letter or digit"
+    "invalid_device_name": "Only lowercase letters, digits, hyphens and underscores",
+    "device_name_underscore": "Underscores work but aren't valid mDNS hostnames — the device may not resolve on RFC-strict networks",
+    "device_name_edge_hyphen": "Names starting or ending with a hyphen aren't valid mDNS hostnames — the device may not resolve on RFC-strict networks"
   },
   "layout": {
     "secrets": "Secrets",
@@ -559,6 +565,7 @@
     "type_install": "Install",
     "type_clean": "Clean",
     "type_reset_build_env": "Reset",
+    "type_rename": "Rename",
     "time_queued": "queued {time}",
     "time_started": "started {time}",
     "time_finished": "finished {time}"

@@ -26,6 +26,7 @@ import {
   recentJobsContext,
 } from "../context/index.js";
 import { espHomeStyles } from "../styles/shared.js";
+import { firmwareJobDisplayName } from "../util/firmware-job-display.js";
 import { registerMdiIcons } from "../util/register-icons.js";
 import {
   deleteBulkDevices,
@@ -462,6 +463,7 @@ export class ESPHomePageDashboard extends LitElement {
               ?api-encrypted=${device.api_encrypted === true}
               .apiEncryptionActive=${device.api_encryption_active ?? null}
               ?busy=${this._activeJobs.has(device.configuration)}
+              .activeJob=${this._activeJobs.get(device.configuration) ?? null}
               ?highlight=${this._recentlyAdopted === device.configuration}
               .recentJob=${this._recentJobs.get(device.configuration) ?? null}
               .webUrl=${webUrl}
@@ -769,12 +771,32 @@ export class ESPHomePageDashboard extends LitElement {
     if (!device) return;
     const newName = e.detail;
     if (newName === device.name) return;
+    let response: Awaited<ReturnType<ESPHomeAPI["renameDevice"]>>;
     try {
-      await this._api.renameDevice(device.configuration, newName);
-      toast.success(this._localize("dashboard.action_rename_success", { name: newName }), { richColors: true });
+      response = await this._api.renameDevice(device.configuration, newName);
     } catch {
       toast.error(this._localize("dashboard.action_rename_failed", { name: device.name }), { richColors: true });
+      return;
     }
+    if (response.job) {
+      /* Validated configs route through the firmware queue — the
+         compile + OTA install runs there and we follow it in the
+         command-dialog so the user sees live output. The dialog
+         shows a success/error banner on completion via the existing
+         command.rename_* localized strings.
+         Reuse ``firmwareJobDisplayName`` so the dialog title format
+         stays in lockstep with what the firmware-tasks list shows
+         when the user reopens this same job mid-flight. */
+      this._commandDialog.followJob(
+        response.job,
+        firmwareJobDisplayName(response.job, this._devices, this._localize),
+      );
+      return;
+    }
+    /* No job: backend did a pure file-level rename inline (config
+       didn't validate, nothing to flash). Show the success toast
+       immediately. */
+    toast.success(this._localize("dashboard.action_rename_success", { name: newName }), { richColors: true });
   }
 
   private async _showApiKey(device: ConfiguredDevice) {
@@ -846,9 +868,16 @@ export class ESPHomePageDashboard extends LitElement {
 
   private _showJobProgress(device: ConfiguredDevice) {
     const job = this._activeJobs.get(device.configuration);
-    if (job) {
-      this._commandDialog.followJob(job, device.friendly_name || device.name);
-    }
+    if (!job) return;
+    /* Defer to the shared display-name helper so RENAME jobs keep
+       the "old → new" transition in their title — clicking the
+       Renaming badge used to land in a dialog labelled with just
+       the device's friendly name, losing the same context the
+       initial rename dialog had. */
+    this._commandDialog.followJob(
+      job,
+      firmwareJobDisplayName(job, this._devices, this._localize),
+    );
   }
 
   private _openInstallMethod(device: ConfiguredDevice) {

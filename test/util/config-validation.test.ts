@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ConfigEntryType, type ConfigEntry } from "../../src/api/types.js";
 import {
+  getDeviceNameWarning,
   validateDeviceName,
   validateEntries,
   validateEntry,
@@ -47,18 +48,49 @@ describe("validateDeviceName", () => {
     expect(validateDeviceName("   ")?.code).toBe("validation.required");
   });
 
-  it("rejects uppercase and underscores", () => {
+  it("rejects uppercase characters", () => {
     expect(validateDeviceName("MyDevice")?.code).toBe("validation.invalid_device_name");
-    expect(validateDeviceName("my_device")?.code).toBe("validation.invalid_device_name");
   });
 
-  it("rejects leading/trailing hyphen", () => {
-    expect(validateDeviceName("-foo")?.code).toBe("validation.invalid_device_name");
-    expect(validateDeviceName("foo-")?.code).toBe("validation.invalid_device_name");
+  it("accepts underscores (esphome rename allows them)", () => {
+    /* Plenty of existing configs use ``my_device`` style; rejecting
+       them here would make those devices un-renamable from the
+       dashboard. The ``getDeviceNameWarning`` companion flags them
+       as a soft mDNS-hostname warning instead. */
+    expect(validateDeviceName("my_device")).toBeNull();
+  });
+
+  it("accepts leading/trailing hyphen (esphome rename allows them)", () => {
+    expect(validateDeviceName("-foo")).toBeNull();
+    expect(validateDeviceName("foo-")).toBeNull();
   });
 
   it("rejects names over 63 chars", () => {
     expect(validateDeviceName("a".repeat(64))?.code).toBe("validation.max_length");
+  });
+});
+
+describe("getDeviceNameWarning", () => {
+  it("warns about underscores (mDNS hostname concern)", () => {
+    expect(getDeviceNameWarning("my_device")?.code).toBe(
+      "validation.device_name_underscore",
+    );
+  });
+
+  it("warns about leading or trailing hyphens", () => {
+    /* RFC 952/1123 forbids edge hyphens in DNS labels, so they
+       have the same mDNS-resolution risk as underscores. */
+    expect(getDeviceNameWarning("-foo")?.code).toBe(
+      "validation.device_name_edge_hyphen",
+    );
+    expect(getDeviceNameWarning("foo-")?.code).toBe(
+      "validation.device_name_edge_hyphen",
+    );
+  });
+
+  it("returns null for clean hyphenated names", () => {
+    expect(getDeviceNameWarning("my-device")).toBeNull();
+    expect(getDeviceNameWarning("device42")).toBeNull();
   });
 });
 

@@ -169,7 +169,8 @@
     "install_method_back": "Terug",
     "status_modified": "Gewijzigd",
     "status_update_available": "Update beschikbaar",
-    "status_installing": "Installeren…"
+    "status_installing": "Installeren…",
+    "status_renaming": "Hernoemen…"
   },
   "command": {
     "install_title": "Installeren — {name}",
@@ -193,6 +194,9 @@
     "clean_failed": "Opschonen mislukt.",
     "reset_success": "Bouw-omgeving gereset. De volgende compilatie downloadt de toolchain opnieuw.",
     "reset_failed": "Resetten van de bouw-omgeving mislukt.",
+    "rename_title": "Hernoemen — {name}",
+    "rename_success": "Hernoemen voltooid!",
+    "rename_failed": "Hernoemen mislukt.",
     "queued_title": "In wachtrij",
     "queued_message": "Er draait al een andere firmwaretaak. Deze start zodra die klaar is.",
     "queued_waiting_for": "Wachten tot {name} klaar is.",
@@ -484,7 +488,9 @@
     "not_a_number": "Moet een getal zijn",
     "not_an_integer": "Moet een geheel getal zijn",
     "invalid_option": "Geen geldige optie",
-    "invalid_device_name": "Alleen kleine letters, cijfers en streepjes; moet beginnen/eindigen met een letter of cijfer"
+    "invalid_device_name": "Alleen kleine letters, cijfers, streepjes en underscores",
+    "device_name_underscore": "Underscores werken maar zijn geen geldige mDNS-hostnamen — het apparaat is mogelijk niet bereikbaar op strikte netwerken",
+    "device_name_edge_hyphen": "Namen die met een streepje beginnen of eindigen zijn geen geldige mDNS-hostnamen — het apparaat is mogelijk niet bereikbaar op strikte netwerken"
   },
   "command_palette": {
     "placeholder": "Typ een commando of zoek…",
