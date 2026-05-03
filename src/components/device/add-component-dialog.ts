@@ -452,14 +452,13 @@ export class ESPHomeAddComponentDialog extends LitElement {
       this._submitError = "";
       return;
     }
-    // Mid-bundle back is a cancel — drop the queue and return to the
-    // catalog. Already-added components stay in the YAML; we don't
-    // roll them back (consistent with the regular flow's no-rollback
-    // behaviour on errors).
-    if (this._bundleProgress) {
-      this._bundleQueue = [];
-      this._bundleProgress = null;
-    }
+    // Returning to the catalog (mid-bundle cancel or otherwise) —
+    // drop all detour state so a leftover `_prefillReference` from an
+    // abandoned bundle step can't leak into the next component the
+    // user selects. Already-added bundle components stay in the YAML;
+    // we don't roll them back (consistent with the regular flow's
+    // no-rollback behaviour on errors).
+    this._resetDetourState();
     this._selected = null;
     this._submitError = "";
   }
@@ -558,6 +557,22 @@ export class ESPHomeAddComponentDialog extends LitElement {
         if (!nextComponent) {
           this._submitError = this._localize("device.add_component_error");
           return;
+        }
+        // Hand the just-added component's id to the next step's matching
+        // `references_component` field. Bundles are designed to chain —
+        // e.g. `Status LED (full setup)` adds an `output.gpio`, then a
+        // `light.binary` whose `output:` field has to point at it — and
+        // without this prefill the user has to re-pick the id they just
+        // typed in the previous step from a dropdown.
+        const justAddedId = e.detail.fields["id"];
+        const justAddedDomain = this._selected.category;
+        if (typeof justAddedId === "string" && justAddedDomain) {
+          this._prefillReference = {
+            domain: justAddedDomain,
+            id: justAddedId,
+          };
+        } else {
+          this._prefillReference = null;
         }
         this._bundleQueue = remaining;
         this._bundleProgress = {
