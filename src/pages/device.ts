@@ -172,10 +172,29 @@ export class ESPHomePageDevice extends LitElement {
     r?.(value);
   }
 
-  private _onLeaveDiscard = () => this._resolvePendingLeave(true);
+  /* Discard / Save flip ``_allowingLeave`` BEFORE resolving the
+   * guard Promise. Two callers wait on that resolve:
+   *   - The browser-back path, which then calls ``history.back()``
+   *     itself (the popstate handler's ``.then`` would set
+   *     ``_allowingLeave`` afterwards).
+   *   - ``navigate()`` (in-app Back / logo click), which on
+   *     ``canLeave=true`` does ``pushState + dispatchEvent(popstate)``
+   *     synchronously. That synthetic popstate would otherwise be
+   *     re-intercepted by ``_onPopState`` (because ``_isDirty`` is
+   *     still true here — Discard doesn't revert the buffer) and
+   *     bounced back to the device URL, leaving the user stuck on
+   *     the page they were trying to leave. Setting the flag here
+   *     short-circuits the next popstate so navigate's URL push
+   *     actually sticks.
+   */
+  private _onLeaveDiscard = () => {
+    this._allowingLeave = true;
+    this._resolvePendingLeave(true);
+  };
 
   private _onLeaveSave = () => {
     this._saveYaml();
+    this._allowingLeave = true;
     this._resolvePendingLeave(true);
   };
 
@@ -537,7 +556,26 @@ export class ESPHomePageDevice extends LitElement {
   }
 
   private _onYamlUpdated(e: CustomEvent<{ yaml: string }>) {
+    /* ``yaml-updated`` fires from the visual-editor section save,
+     * the add-component dialog, and the section-delete path. Two
+     * emitters (``add-component-dialog`` and the section-delete
+     * branch) ``await`` the API call before dispatching; the
+     * section-save path is intentionally optimistic — it kicks
+     * off ``api.updateConfig`` without awaiting and dispatches
+     * immediately so the form clears its dirty state without an
+     * extra round-trip. ``_savedYaml`` advances optimistically to
+     * match: it tracks "what we believe is on disk", consistent
+     * with the section component's own optimistic ``_dirty=false``.
+     * If the save fails, the section's existing error toast
+     * surfaces it; the parent's dirty state is the rare wrong
+     * follower of the optimistic flow.
+     *
+     * Without this, the YAML editor's Save button stayed enabled
+     * after a successful visual save because ``_isDirty`` (which
+     * compares ``_yaml`` vs ``_savedYaml``) latched true on the
+     * first ``yaml-updated``. */
     this._yaml = e.detail.yaml;
+    this._savedYaml = e.detail.yaml;
   }
 
   private _onSectionSelect(
