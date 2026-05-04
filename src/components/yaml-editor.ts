@@ -14,6 +14,10 @@ import { apiContext, darkModeContext } from "../context/index.js";
 import { ESPHOME_YAML_INDENT, esphomeYaml } from "../util/esphome-yaml-lang.js";
 import { createBackendYamlLinter } from "../util/yaml-lint-backend.js";
 import { createYamlCompletionSource } from "../util/yaml-completion.js";
+import {
+  sensitiveValueMaskExtension,
+  setRevealSensitiveEffect,
+} from "../util/yaml-sensitive-mask.js";
 import type { YamlSection } from "../util/yaml-sections.js";
 
 export type HighlightRange = Pick<YamlSection, "fromLine" | "toLine">;
@@ -64,6 +68,13 @@ export class ESPHomeYamlEditor extends LitElement {
 
   @property({ type: Boolean }) scrollToHighlight = false;
 
+  /** When true, sensitive credential values (passwords, encryption
+   *  keys, PSKs) render as plain text. Default false → values render
+   *  as bullets, matching how `<esphome-password-input>` hides the
+   *  same fields in the config-entry form. Distinct from ESPHome's
+   *  `!secret`-tag handling — this only affects raw inline values. */
+  @property({ type: Boolean }) revealSensitive = false;
+
   @query(".cm-wrap") private _container!: HTMLDivElement;
 
   private _view: EditorView | null = null;
@@ -102,6 +113,7 @@ export class ESPHomeYamlEditor extends LitElement {
       indentUnit.of(ESPHOME_YAML_INDENT),
       keymap.of([indentWithTab]),
       highlightField,
+      sensitiveValueMaskExtension(this.revealSensitive),
       EditorView.theme({
         "&": { height: "100%" },
         ".cm-scroller": {
@@ -470,6 +482,12 @@ export class ESPHomeYamlEditor extends LitElement {
         const pos = this._view.state.doc.line(Math.min(line, this._view.state.doc.lines)).from;
         this._view.dispatch({ effects: EditorView.scrollIntoView(pos, { y: "start", yMargin: 50 }) });
       }
+    }
+
+    if (changed.has("revealSensitive") && this._view) {
+      this._view.dispatch({
+        effects: setRevealSensitiveEffect.of(this.revealSensitive),
+      });
     }
   }
 
