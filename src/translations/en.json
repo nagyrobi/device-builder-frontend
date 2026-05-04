@@ -131,8 +131,11 @@
     "install_method_usb_local_unsupported": "Requires a browser with Web Serial support (e.g. Chrome)",
     "install_method_usb_server": "Plug into computer running ESPHome Dashboard",
     "install_method_usb_server_desc": "For devices connected via USB to the server",
-    "install_method_web_download": "Download firmware to flash via web.esphome.io",
-    "install_method_web_download_desc": "Compile here, then flash from a computer that can use Web Serial",
+    "install_method_web_download": "Flash on this computer via {link}",
+    "install_method_web_download_link": "web.esphome.io",
+    "install_method_web_download_desc": "Requires a browser with Web Serial support (e.g. Chrome)",
+    "install_method_manual_download": "Download firmware binary",
+    "install_method_manual_download_desc": "Compile here and download the binary, then flash it manually with your preferred tool",
     "install": "Install",
     "install_method_select_port": "Select a serial port",
     "install_method_no_ports": "No serial ports found. Make sure the device is connected to the server.",
@@ -283,6 +286,7 @@
     "compile_failed": "Compilation failed.",
     "download_failed": "Failed to download firmware.",
     "no_flashable_binary": "No flashable binary available for this device. web.esphome.io supports ESP32 and ESP8266 only.",
+    "no_binaries": "No binaries were produced for this device. Make sure the build completed successfully.",
     "flash_failed": "Failed to flash firmware to device.",
     "chip_mismatch": "Chip mismatch: detected {detected} but device expects {expected}.",
     "validate_title": "Validate — {name}",
@@ -296,7 +300,9 @@
     "web_download_step_open": "Open web.esphome.io",
     "web_download_step_connect": "Click Connect and pick your device's serial port",
     "web_download_step_install": "Choose Install and select the downloaded {filename}",
-    "web_download_open_button": "Open web.esphome.io"
+    "web_download_open_button": "Open web.esphome.io",
+    "binary_download_done_title": "Firmware binary downloaded",
+    "binary_download_done_body": "Saved as {filename}. Flash it to your device with your preferred tool."
   },
   "serial": {
     "title": "USB Device",
