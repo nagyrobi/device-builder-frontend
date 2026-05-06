@@ -159,12 +159,18 @@ export class ESPHomeDeviceCard extends LitElement {
     espHomeStyles,
     labelChipStyles,
     css`
+      /* Only rendered when the device carries labels; an untagged
+         device gets no chip row and the card collapses naturally.
+         Padding leans top-heavy (8px top vs 4px bottom) because the
+         actions row that follows already carries its own
+         var(--wa-space-s) of top padding, so a symmetric padding
+         here reads as more space below the chips than above. */
       .device-card-labels {
         display: flex;
         flex-wrap: wrap;
+        align-items: center;
         gap: 4px;
-        padding: 0 var(--wa-space-m) var(--wa-space-s);
-        margin-top: -2px;
+        padding: 8px var(--wa-space-m) 4px;
       }
     `,
     css`
@@ -670,8 +676,8 @@ export class ESPHomeDeviceCard extends LitElement {
    *  header. Caps at 4 visible chips with a "+N" overflow chip so a
    *  heavily-tagged device doesn't blow out the card height; the
    *  full set is reachable from the drawer. ``nothing`` when the
-   *  device carries no labels — keeps the card visually unchanged
-   *  for the typical un-tagged device. */
+   *  device carries no labels — the card collapses naturally so
+   *  untagged cards don't show an empty band. */
   private _renderLabels() {
     const labels = resolveLabelIds(this.labelIds, this._labelCatalog);
     if (labels.length === 0) return nothing;
