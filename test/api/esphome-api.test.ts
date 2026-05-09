@@ -8,6 +8,7 @@ import {
 } from "vitest";
 import { APIError } from "../../src/api/api-error.js";
 import { ESPHomeAPI } from "../../src/api/esphome-api.js";
+import { mintRemoteBuildBearer } from "../../src/util/remote-build-bearer.js";
 import {
   MockWebSocket,
   installMockWebSocket,
@@ -614,7 +615,7 @@ describe("ESPHomeAPI — typed command wrappers", () => {
     // both ``enabled`` and ``manual_hosts``; mocking only
     // ``{ enabled }`` here would let an accidental field-rename
     // regression slip past this test.
-    const payload = { enabled: true, manual_hosts: [] };
+    const payload = { enabled: true, manual_hosts: [], tokens: [] };
     const pending = api.getRemoteBuildSettings();
     const sent = ws.sentAs<{ command: string; message_id: string; args?: unknown }>(0);
     expect(sent.command).toBe("remote_build/get_settings");
@@ -631,8 +632,8 @@ describe("ESPHomeAPI — typed command wrappers", () => {
     expect(sent.command).toBe("remote_build/set_settings");
     expect(sent.args).toEqual({ enabled: true });
     // Same wire-shape rationale as ``getRemoteBuildSettings`` —
-    // the result includes ``manual_hosts``.
-    const result = { enabled: true, manual_hosts: [] };
+    // the result includes ``manual_hosts`` and ``tokens``.
+    const result = { enabled: true, manual_hosts: [], tokens: [] };
     ws.receive({ message_id: sent.message_id, result });
     await expect(pending).resolves.toEqual(result);
   });
@@ -656,11 +657,13 @@ describe("ESPHomeAPI — typed command wrappers", () => {
       result: {
         enabled: false,
         manual_hosts: [{ hostname: "10.0.0.5", port: 6052 }],
+        tokens: [],
       },
     });
     await expect(pending).resolves.toEqual({
       enabled: false,
       manual_hosts: [{ hostname: "10.0.0.5", port: 6052 }],
+      tokens: [],
     });
   });
 
@@ -680,9 +683,13 @@ describe("ESPHomeAPI — typed command wrappers", () => {
     expect(sent.args).toEqual({ hostname: "10.0.0.5", port: 6052 });
     ws.receive({
       message_id: sent.message_id,
-      result: { enabled: false, manual_hosts: [] },
+      result: { enabled: false, manual_hosts: [], tokens: [] },
     });
-    await expect(pending).resolves.toEqual({ enabled: false, manual_hosts: [] });
+    await expect(pending).resolves.toEqual({
+      enabled: false,
+      manual_hosts: [],
+      tokens: [],
+    });
   });
 
   it("listRemoteBuildHosts sends remote_build/list_hosts and unwraps the result", async () => {
@@ -711,6 +718,154 @@ describe("ESPHomeAPI — typed command wrappers", () => {
     const pending = api.listRemoteBuildHosts();
     const sent = ws.sentAs<{ command: string; message_id: string; args?: unknown }>(0);
     expect(sent.command).toBe("remote_build/list_hosts");
+    expect(sent.args).toBeUndefined();
+    ws.receive({ message_id: sent.message_id, result: payload });
+    await expect(pending).resolves.toEqual(payload);
+  });
+
+  it("listRemoteBuildTokens sends remote_build/list_tokens and unwraps the result", async () => {
+    const api = new ESPHomeAPI();
+    const ws = await connect(api);
+    const payload = [
+      {
+        token_id: "abcdefghijk",
+        label: "green",
+        created_at: 1715212800,
+        bound_dashboard_id: null,
+      },
+      {
+        token_id: "lmnopqrstuv",
+        label: "laptop",
+        created_at: 1715212900,
+        bound_dashboard_id: "laptop-dashboard-id",
+      },
+    ];
+    const pending = api.listRemoteBuildTokens();
+    const sent = ws.sentAs<{ command: string; message_id: string; args?: unknown }>(0);
+    expect(sent.command).toBe("remote_build/list_tokens");
+    expect(sent.args).toBeUndefined();
+    ws.receive({ message_id: sent.message_id, result: payload });
+    await expect(pending).resolves.toEqual(payload);
+  });
+
+  it("addRemoteBuildToken sends label + token_id + secret_sha256 (no cleartext)", async () => {
+    const api = new ESPHomeAPI();
+    const ws = await connect(api);
+    const args = {
+      label: "green",
+      token_id: "abcdefghijk",
+      secret_sha256: "f".repeat(64),
+    };
+    const pending = api.addRemoteBuildToken(args);
+    const sent = ws.sentAs<{
+      command: string;
+      message_id: string;
+      args: Record<string, unknown>;
+    }>(0);
+    expect(sent.command).toBe("remote_build/add_token");
+    // Pin the wire shape: only label + token_id + secret_sha256.
+    // No "secret" or "bearer" key — the cleartext stays
+    // client-side and never lands in this payload.
+    expect(sent.args).toEqual(args);
+    expect(sent.args).not.toHaveProperty("secret");
+    expect(sent.args).not.toHaveProperty("bearer");
+    const result = {
+      token_id: args.token_id,
+      label: args.label,
+      created_at: 1715212800,
+      bound_dashboard_id: null,
+    };
+    ws.receive({ message_id: sent.message_id, result });
+    await expect(pending).resolves.toEqual(result);
+  });
+
+  it("removeRemoteBuildToken sends remote_build/remove_token with token_id", async () => {
+    const api = new ESPHomeAPI();
+    const ws = await connect(api);
+    const pending = api.removeRemoteBuildToken({ token_id: "abcdefghijk" });
+    const sent = ws.sentAs<{
+      command: string;
+      message_id: string;
+      args: Record<string, unknown>;
+    }>(0);
+    expect(sent.command).toBe("remote_build/remove_token");
+    expect(sent.args).toEqual({ token_id: "abcdefghijk" });
+    const result = { enabled: true, manual_hosts: [], tokens: [] };
+    ws.receive({ message_id: sent.message_id, result });
+    await expect(pending).resolves.toEqual(result);
+  });
+
+  it("addRemoteBuildToken accepts mintRemoteBuildBearer output as-is (chain contract)", async () => {
+    // Pin the integration the UI does end-to-end: the mint
+    // helper returns a shape the wrapper accepts without any
+    // reformatting. A drift in either side's field naming
+    // (e.g. mint returns ``tokenId`` while the wrapper expects
+    // ``token_id``) would only surface in production today; this
+    // test catches it at unit-test time.
+    const minted = mintRemoteBuildBearer();
+    const api = new ESPHomeAPI();
+    const ws = await connect(api);
+    const pending = api.addRemoteBuildToken({
+      label: "green",
+      token_id: minted.token_id,
+      secret_sha256: minted.secret_sha256,
+    });
+    const sent = ws.sentAs<{
+      command: string;
+      message_id: string;
+      args: Record<string, unknown>;
+    }>(0);
+    expect(sent.command).toBe("remote_build/add_token");
+    expect(sent.args).toEqual({
+      label: "green",
+      token_id: minted.token_id,
+      secret_sha256: minted.secret_sha256,
+    });
+    expect(sent.args).not.toHaveProperty("secret");
+    expect(sent.args).not.toHaveProperty("bearer");
+    ws.receive({
+      message_id: sent.message_id,
+      result: {
+        token_id: minted.token_id,
+        label: "green",
+        created_at: 1715212800,
+        bound_dashboard_id: null,
+      },
+    });
+    await pending;
+  });
+
+  it("getRemoteBuildIdentity sends remote_build/get_identity and unwraps the result", async () => {
+    const api = new ESPHomeAPI();
+    const ws = await connect(api);
+    const payload = {
+      dashboard_id: "abc123",
+      pin_sha256: "a".repeat(64),
+      server_version: "1.2.3",
+      esphome_version: "2026.5.0",
+      listener_bound: true,
+    };
+    const pending = api.getRemoteBuildIdentity();
+    const sent = ws.sentAs<{ command: string; message_id: string; args?: unknown }>(0);
+    expect(sent.command).toBe("remote_build/get_identity");
+    expect(sent.args).toBeUndefined();
+    ws.receive({ message_id: sent.message_id, result: payload });
+    await expect(pending).resolves.toEqual(payload);
+  });
+
+  it("rotateRemoteBuildIdentity sends remote_build/rotate_identity and unwraps the result", async () => {
+    const api = new ESPHomeAPI();
+    const ws = await connect(api);
+    const payload = {
+      dashboard_id: "abc123",
+      pin_sha256: "b".repeat(64),
+      server_version: "1.2.3",
+      esphome_version: "2026.5.0",
+      listener_bound: true,
+    };
+    const pending = api.rotateRemoteBuildIdentity();
+    const sent = ws.sentAs<{ command: string; message_id: string; args?: unknown }>(0);
+    expect(sent.command).toBe("remote_build/rotate_identity");
     expect(sent.args).toBeUndefined();
     ws.receive({ message_id: sent.message_id, result: payload });
     await expect(pending).resolves.toEqual(payload);
