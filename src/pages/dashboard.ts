@@ -33,6 +33,7 @@ import {
   localizeContext,
   recentJobsContext,
 } from "../context/index.js";
+import { inputStyles } from "../styles/inputs.js";
 import { espHomeStyles } from "../styles/shared.js";
 import { YamlSearchController } from "../components/yaml-search-controller.js";
 import { matchesDeviceName } from "../util/device-search.js";
@@ -67,9 +68,8 @@ import {
   renderYamlToolbar,
 } from "../components/dashboard/render-toolbar.js";
 import {
-  renderBanner,
   renderCardGrid,
-  renderDiscoveredGrid,
+  renderDiscoveredSection,
   renderDrawer,
   renderTable,
 } from "../components/dashboard/render-content.js";
@@ -94,7 +94,6 @@ import {
 } from "../components/dashboard/install.js";
 
 import "@home-assistant/webawesome/dist/components/icon/icon.js";
-import "@home-assistant/webawesome/dist/components/input/input.js";
 import "../components/api-key-dialog.js";
 import type { ESPHomeApiKeyDialog } from "../components/api-key-dialog.js";
 import "../components/archived-devices-dialog.js";
@@ -196,13 +195,24 @@ export class ESPHomePageDashboard extends LitElement {
   @query("esphome-logs-dialog") _logsDialog!: ESPHomeLogsDialog;
   @query(".search-input") _searchInputEl?: HTMLElement & { focus: () => void };
 
-  static styles = [espHomeStyles, dashboardStyles];
+  static styles = [espHomeStyles, inputStyles, dashboardStyles];
 
   private _onSerialSetup = () => {
     void detectAndOpenWizard(this._api, this._createDialog);
   };
   private _onShowIgnoredChanged = (e: Event) => {
     this._showIgnored = (e as CustomEvent<{ value: boolean }>).detail.value;
+  };
+
+  _toggleShowIgnored = () => {
+    this._showIgnored = !this._showIgnored;
+    localStorage.setItem("esphome-show-ignored", String(this._showIgnored));
+    // Other components / future tabs hook in via this window event.
+    window.dispatchEvent(
+      new CustomEvent("esphome-show-ignored-changed", {
+        detail: { value: this._showIgnored },
+      }),
+    );
   };
   private _onShowArchivedDialog = () => this._archivedDialog?.open();
 
@@ -279,11 +289,15 @@ export class ESPHomePageDashboard extends LitElement {
         : cardSkeletonTemplate;
     }
 
+    // YAML view: a list of device titles. With an empty query it shows
+    // every device's name only; once the user types, devices without
+    // matches drop out and matching ones expand to show their YAML
+    // snippets.
     if (this._yamlMode) {
       return html`
-        ${renderBanner(this)} ${renderDiscoveredGrid(this)}
+        ${renderDiscoveredSection(this)}
         ${renderYamlToolbar(this)}
-        ${renderYamlMode(this._localize, this._yamlSearch.hits, this._search.trim())}
+        ${renderYamlMode(this)}
         ${renderDrawer(this)} ${renderSelectBarOrFab(this)} ${renderDialogs(this)}
       `;
     }
@@ -295,7 +309,7 @@ export class ESPHomePageDashboard extends LitElement {
       : labelFiltered;
 
     return html`
-      ${renderBanner(this)} ${renderDiscoveredGrid(this)}
+      ${renderDiscoveredSection(this)}
       ${this._devices.length > 0 && this._view === DashboardView.CARDS
         ? renderToolbar(this, filtered.length, this._devices.length)
         : ""}
@@ -389,6 +403,8 @@ export class ESPHomePageDashboard extends LitElement {
   }
 
   _enterDeviceView = (view: DashboardView) => {
+    // YAML is a third view option: clicking cards or table exits YAML
+    // search and returns to the device list.
     if (this._yamlMode) this._setSearchMode(false);
     this._view = view;
     this._api.updatePreferences({ dashboard_view: view }).catch(() => {});
