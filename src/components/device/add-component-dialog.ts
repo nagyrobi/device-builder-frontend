@@ -14,6 +14,11 @@ import { localizeContext, apiContext } from "../../context/index.js";
 import { espHomeStyles } from "../../styles/shared.js";
 import { registerMdiIcons } from "../../util/register-icons.js";
 import { chooseExcludeCategories } from "./add-component-dialog-categories.js";
+import {
+  matchesDepDomain,
+  navigateToDep,
+  type DepNavHost,
+} from "./add-component-dialog-dep-nav.js";
 
 import "@home-assistant/webawesome/dist/components/dialog/dialog.js";
 import "@home-assistant/webawesome/dist/components/icon/icon.js";
@@ -282,12 +287,16 @@ export class ESPHomeAddComponentDialog extends LitElement {
     this.updateComplete.then(() => this._catalog?.filterByDomain(domain));
   }
 
+  /** See ``navigateToDep`` for the seq-counter contract. */
+  private _depNavSeq = 0;
+
   private _resetDetourState() {
     this._returnTo = null;
     this._depDomain = null;
     this._prefillReference = null;
     this._bundleQueue = [];
     this._bundleProgress = null;
+    this._depNavSeq++;
   }
 
   protected render() {
@@ -466,24 +475,9 @@ export class ESPHomeAddComponentDialog extends LitElement {
     this._submitError = "";
   }
 
-  /**
-   * Switch to the catalog view filtered to a missing dependency's
-   * domain. Remember the component the user was in the middle of
-   * adding (and the domain) so we can restore + prefill after they
-   * finish adding the dependency.
-   */
-  private async _onNavigateToDep(e: CustomEvent<{ domain: string }>) {
+  private _onNavigateToDep(e: CustomEvent<{ domain: string }>) {
     e.stopPropagation();
-    if (this._submitting) return;
-    const { domain } = e.detail;
-    if (this._selected) {
-      this._returnTo = this._selected;
-      this._depDomain = domain;
-    }
-    this._selected = null;
-    this._submitError = "";
-    await this.updateComplete;
-    this._catalog?.filterByDomain(domain);
+    return navigateToDep(this as unknown as DepNavHost, e.detail.domain);
   }
 
   private async _onFormSubmit(e: CustomEvent<{ fields: Record<string, unknown> }>) {
@@ -491,6 +485,9 @@ export class ESPHomeAddComponentDialog extends LitElement {
     if (!this._selected || !this.configuration || this._submitting) return;
     this._submitting = true;
     this._submitError = "";
+    // Invalidate any in-flight dep-nav lookup — a late resolve must
+    // not retarget the form to a dep after the user submitted.
+    this._depNavSeq++;
     try {
       const { yaml } = await this._api.addComponent(this.configuration, {
         component_id: this._selected.id,
@@ -526,16 +523,15 @@ export class ESPHomeAddComponentDialog extends LitElement {
         // bundle-advance branch and continue.
         const restore = this._returnTo;
         const depDomain = this._depDomain;
-        // If the component the user just added matches the dep domain
-        // we navigated for, hand the new id to the restored form so
-        // it pre-selects it in the matching reference field. Match by
-        // category to defend against the user picking something else
-        // from the filtered catalog.
+        // Pre-fill the restored form's reference field with the new
+        // id when the just-added component matches what the dep-nav
+        // asked for (defends against the user picking off-domain in
+        // the catalog fallback).
         const newId = e.detail.fields["id"];
         if (
           depDomain &&
           typeof newId === "string" &&
-          this._selected.category === depDomain
+          matchesDepDomain(this._selected, depDomain)
         ) {
           this._prefillReference = { domain: depDomain, id: newId };
         } else {
