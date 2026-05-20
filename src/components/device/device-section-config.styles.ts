@@ -124,6 +124,120 @@ export const deviceSectionConfigStyles = css`
     padding-top: var(--wa-space-s);
   }
 
+  /* Per-section inline "+ Add ..." button. Currently only used by
+     the api section ("+ Add API action") and sits in the same
+     .actions footer row as the section's Delete button. Sized
+     to match the delete button so the pair reads as one footer. */
+  .section-extra-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    color: var(--wa-color-brand-fill-loud, #0b5cad);
+    border: var(--wa-border-width-s) solid
+      color-mix(in srgb, var(--wa-color-brand-fill-loud, #0b5cad), transparent 70%);
+    padding: var(--wa-space-xs) var(--wa-space-m);
+    border-radius: var(--wa-border-radius-m);
+    cursor: pointer;
+    font-size: var(--wa-font-size-s);
+    font-weight: var(--wa-font-weight-bold);
+    font-family: inherit;
+    transition: background 0.12s, border-color 0.12s;
+  }
+
+  .section-extra-add:hover {
+    background: color-mix(in srgb, var(--wa-color-brand-fill-loud, #0b5cad), transparent 90%);
+    border-color: var(--wa-color-brand-fill-loud, #0b5cad);
+  }
+
+  .section-extra-add wa-icon {
+    font-size: 16px;
+  }
+
+  /* api.actions: manage-list. Each row carries the action's name
+     plus edit + delete affordances; the "+ Add" button lives in
+     the actions footer (alongside the section Delete) rather than
+     here so the table stays as a tight read-only summary. */
+  .api-actions-table {
+    display: flex;
+    flex-direction: column;
+    gap: var(--wa-space-2xs);
+    padding-top: var(--wa-space-s);
+  }
+
+  .api-actions-title {
+    font-size: var(--wa-font-size-s);
+    font-weight: var(--wa-font-weight-semibold);
+    margin: 0;
+    color: var(--wa-color-text-normal);
+  }
+
+  .api-actions-rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--wa-space-2xs);
+  }
+
+  .api-actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--wa-space-s);
+    padding: var(--wa-space-2xs) var(--wa-space-s);
+    border: 1px solid var(--wa-color-neutral-border-quiet, #e1e4e8);
+    border-radius: var(--wa-border-radius-s);
+    background: var(--wa-color-surface-lowered, transparent);
+  }
+
+  .api-actions-name {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: var(--wa-font-size-s);
+    color: var(--wa-color-text-normal);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .api-actions-row-buttons {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--wa-space-2xs);
+  }
+
+  .api-actions-row-edit,
+  .api-actions-row-delete {
+    appearance: none;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--wa-color-text-quiet);
+    width: 32px;
+    height: 32px;
+    border-radius: var(--wa-border-radius-s);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .api-actions-row-edit:hover:not(:disabled) {
+    background: var(--wa-color-surface-default);
+    color: var(--wa-color-text-normal);
+  }
+
+  .api-actions-row-delete:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--esphome-error), transparent 90%);
+    color: var(--esphome-error);
+  }
+
+  .api-actions-row-edit:disabled,
+  .api-actions-row-delete:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
   .delete-button {
     display: inline-flex;
     align-items: center;

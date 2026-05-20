@@ -45,6 +45,16 @@ import {
   sectionKeyFromLocation,
 } from "./automation-editor/serialise.js";
 
+/** Kinds the wizard can produce. Mirrors a subset of
+ *  ``AutomationLocation``'s discriminator. The callable shapes
+ *  (``script:``, ``api.actions:``) live behind their own
+ *  dedicated dialogs, since the wizard's "what should this react
+ *  to?" framing doesn't apply to them. */
+export type AddAutomationKind =
+  | "device_on"
+  | "component_on"
+  | "interval";
+
 import "@home-assistant/webawesome/dist/components/dialog/dialog.js";
 import "@home-assistant/webawesome/dist/components/icon/icon.js";
 import "@home-assistant/webawesome/dist/components/option/option.js";
@@ -53,7 +63,7 @@ import "@home-assistant/webawesome/dist/components/spinner/spinner.js";
 
 registerMdiIcons({ close: mdiClose });
 
-type TargetKind = "device_on" | "component_on" | "interval";
+type TargetKind = AddAutomationKind;
 
 @customElement("esphome-add-automation-dialog")
 export class ESPHomeAddAutomationDialog extends LitElement {

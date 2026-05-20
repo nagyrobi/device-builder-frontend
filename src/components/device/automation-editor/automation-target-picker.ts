@@ -13,6 +13,14 @@
  * - ``light_effect`` — a user-defined effect inside a light's
  *   ``effects:`` list.
  *
+ * ``api_action`` is intentionally absent from this picker. Those
+ * entries live nested under the api component (``api: actions:``)
+ * and are managed inline from the api section editor — the
+ * "create a thing that reacts to a trigger" framing doesn't apply.
+ * The structured editor still HANDLES a pre-existing
+ * ``ApiActionLocation`` (so a navigator click on a parsed api
+ * action still routes correctly).
+ *
  * The picker is presentational: parent owns the selected
  * ``AutomationLocation`` and the list of available component
  * instances (from ``getAvailableAutomations``).
@@ -120,6 +128,11 @@ export class ESPHomeAutomationTargetPicker extends LitElement {
         return this._localize("device.automation_target_interval");
       case "script":
         return this._localize("device.automation_target_script");
+      case "api_action":
+        // Not in ORDER (api_actions are managed from the api
+        // section editor) but still labellable if a pre-existing
+        // location lands here through the legacy add-mode path.
+        return this._localize("device.automation_target_api_action");
       case "light_effect":
         return this._localize("device.automation_light_effect");
     }
@@ -194,6 +207,21 @@ export class ESPHomeAutomationTargetPicker extends LitElement {
         />
       `;
     }
+    if (kind === "api_action") {
+      // The picker doesn't let the user create api_actions through
+      // this surface (api_actions are managed inline from the api
+      // section editor). We still need to render *something* in
+      // edit-mode when a pre-existing api-action location lands
+      // here — a single read-only line is enough.
+      const selectedName =
+        this.value?.kind === "api_action" ? this.value.action_name : "";
+      return html`
+        <label class="ae-section-label">
+          ${this._localize("device.automation_target_api_action_label")}
+        </label>
+        <p class="ae-section-desc">${selectedName}</p>
+      `;
+    }
     if (kind === "light_effect") {
       const selectedId =
         this.value?.kind === "light_effect" ? this.value.component_id : "";
@@ -260,6 +288,11 @@ export class ESPHomeAutomationTargetPicker extends LitElement {
           );
           return light ? { kind, component_id: light.id, index: 0 } : null;
         }
+        case "api_action":
+          // Unreachable through the dropdown (api_action isn't in
+          // ORDER) but kept for the exhaustive switch — the user
+          // can't pick it here.
+          return null;
       }
     })();
     this._emit(next);
