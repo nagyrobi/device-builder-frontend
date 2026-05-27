@@ -69,7 +69,7 @@
     "action_show_api_key": "Afficher la clé API",
     "action_download_yaml": "Télécharger le YAML",
     "action_rename": "Renommer l'hôte",
-    "action_edit_friendly_name": "Modifier le nom convivial…",
+    "action_edit_friendly_name": "Modifier le nom convivial",
     "action_clean_build": "Nettoyer les fichiers de compilation",
     "action_download_elf": "Télécharger le fichier ELF",
     "action_visit_web_ui": "Ouvrir l'interface web",
@@ -609,8 +609,9 @@
     "add_automation_error": "Échec de l'ajout de l'automatisation",
     "add_config_error": "Échec de l'ajout de la section de configuration",
     "editor_layout_label": "Disposition de l'éditeur",
-    "editor_expand": "Agrandir l'éditeur",
-    "editor_collapse": "Réduire l'éditeur",
+    "back": "Retour",
+    "hide_navigator": "Masquer le navigateur",
+    "show_navigator": "Afficher le navigateur",
     "editor_title_ready": "Édition de {name}",
     "delete_section": "Supprimer la section",
     "confirm_delete_section": "Êtes-vous sûr de vouloir supprimer la section « {name} » ?",
@@ -658,7 +659,7 @@
     "save_and_leave": "Enregistrer"
   },
   "onboarding": {
-    "menu_item_setup_wifi": "Configurer le Wi-Fi…",
+    "menu_item_setup_wifi": "Configurer le Wi-Fi",
     "wifi": {
       "title": "Configurer les identifiants Wi-Fi",
       "intro": "Vos appareils s'en servent pour rejoindre le réseau. Ils sont enregistrés une seule fois dans secrets.yaml et partagés entre toutes vos configurations.",
